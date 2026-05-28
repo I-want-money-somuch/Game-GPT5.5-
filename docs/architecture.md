@@ -10,6 +10,7 @@ The project uses custom Godot `Resource` classes for durable content:
 - `ClassDefinition`
 - `LootTable`
 - `EnhancementCurve`
+- `RoomEventDefinition`
 
 Definitions should stay mostly immutable during a run. Runtime state such as current health, armor durability, enhancement level, inventory contents, and room progress belongs to nodes or future save/run-state objects.
 
@@ -19,6 +20,7 @@ Definitions should stay mostly immutable during a run. Runtime state such as cur
 - `LootService` owns drop rolls and pickup creation.
 - `EnhancementService` owns upgrade probabilities and failure outcomes.
 - `MetaProgressionService` owns permanent profile currency, talent levels, run settlement rewards, and `user://profile_v1.json` persistence.
+- `EventService` owns in-run event cost checks and temporary stat reward application.
 - `FeedbackService` owns camera shake, procedural one-shot audio, damage numbers, hit sparks, and death bursts.
 - `ArmorComponent` owns armor durability, but `CombatResolver` owns damage math.
 - Player and enemy scripts consume combat and data APIs, but should not become rule databases.
@@ -45,11 +47,14 @@ The current vertical slice is intentionally deterministic:
 - Treasure rooms spawn guaranteed reward chests.
 - Elite rooms add denser armor pressure and better rewards.
 - The forge room spawns a forge station; pressing `E` near it opens the forge UI.
+- The event room spawns one event station. Current events use run-only costs and rewards, and the Trial Altar can temporarily lock the exit while it spawns an elite enemy.
 - Mini boss and boss rooms use the same template path with different enemy groups.
 
 ## Interaction flow
 
 The player owns a small interaction area that scans nodes in the `interactables` group. Interactable scenes expose `can_interact(player)`, `get_prompt_text()`, and `interact(player)`. HUD prompt text is driven by the player's current interactable, so new interactables can be added without custom HUD logic.
+
+Event stations use the same protocol as reward chests, forge stations, and exit portals. `DungeonRun` owns event-room placement and trial enemy/chest pacing, while `EventService` owns whether the player can pay the event cost and how temporary run modifiers are applied.
 
 ## Meta progression flow
 
@@ -59,7 +64,8 @@ The game starts in the HUD camp overlay. Starting a run applies permanent talent
 
 The first playable slice is scoped to ten rooms:
 
-- Rooms 1, 2, and 7: combat
+- Rooms 1 and 2: combat
+- Room 7: event
 - Rooms 3 and 9: treasure
 - Rooms 4 and 8: elite
 - Room 5: mini boss

@@ -7,16 +7,24 @@ const PICKUP_SCENE := preload("res://scenes/items/Pickup.tscn")
 const ENEMY_SCENE := preload("res://scenes/enemies/Enemy.tscn")
 const REWARD_CHEST_SCENE := preload("res://scenes/interactables/RewardChest.tscn")
 const FORGE_STATION_SCENE := preload("res://scenes/interactables/ForgeStation.tscn")
+const EVENT_STATION_SCENE := preload("res://scenes/interactables/EventStation.tscn")
 const AFFIX_EFFECT_SERVICE_SCRIPT := preload("res://scripts/systems/affix_effect_service.gd")
 const META_PROGRESSION_SERVICE_SCRIPT := preload("res://scripts/systems/meta_progression_service.gd")
+const EVENT_SERVICE_SCRIPT := preload("res://scripts/systems/event_service.gd")
 const LOOT_TABLE := preload("res://resources/loot_tables/mvp_loot_table.tres")
 const ENHANCEMENT_CURVE := preload("res://resources/progression/basic_enhancement_curve.tres")
 const COMBAT_ROOM := preload("res://resources/dungeon/combat_room.tres")
 const ELITE_ROOM := preload("res://resources/dungeon/elite_room.tres")
 const TREASURE_ROOM := preload("res://resources/dungeon/treasure_room.tres")
 const FORGE_ROOM := preload("res://resources/dungeon/forge_room.tres")
+const EVENT_ROOM := preload("res://resources/dungeon/event_room.tres")
 const MINI_BOSS_ROOM := preload("res://resources/dungeon/mini_boss_room.tres")
 const BOSS_ROOM := preload("res://resources/dungeon/boss_room.tres")
+const ROOM_EVENTS = [
+	preload("res://resources/events/ember_pact.tres"),
+	preload("res://resources/events/iron_oath.tres"),
+	preload("res://resources/events/trial_altar.tres"),
+]
 const ELITE_AFFIXES = [
 	preload("res://resources/elite_affixes/flaming.tres"),
 	preload("res://resources/elite_affixes/swift.tres"),
@@ -40,6 +48,7 @@ const BOSS := preload("res://resources/enemies/depths_warden.tres")
 @onready var feedback_service: Node = $FeedbackService
 var affix_effect_service: Node
 var meta_progression_service: Node
+var event_service: Node
 var run_stats := {}
 var current_run_active := false
 var run_settled := false
@@ -70,7 +79,7 @@ var run_settled := false
 	ELITE_ROOM,
 	MINI_BOSS_ROOM,
 	FORGE_ROOM,
-	COMBAT_ROOM,
+	EVENT_ROOM,
 	ELITE_ROOM,
 	TREASURE_ROOM,
 	BOSS_ROOM,
@@ -86,6 +95,9 @@ func _ready() -> void:
 	meta_progression_service = META_PROGRESSION_SERVICE_SCRIPT.new()
 	meta_progression_service.name = "MetaProgressionService"
 	add_child(meta_progression_service)
+	event_service = EVENT_SERVICE_SCRIPT.new()
+	event_service.name = "EventService"
+	add_child(event_service)
 	loot_service.configure(LOOT_TABLE, PICKUP_SCENE, pickup_parent)
 	enhancement_service.curve = ENHANCEMENT_CURVE
 	feedback_service.configure($Player/Camera2D, effects_parent)
@@ -94,14 +106,17 @@ func _ready() -> void:
 		"enemy_scene": ENEMY_SCENE,
 		"reward_chest_scene": REWARD_CHEST_SCENE,
 		"forge_station_scene": FORGE_STATION_SCENE,
+		"event_station_scene": EVENT_STATION_SCENE,
 		"enemy_parent": enemy_parent,
 		"pickup_parent": pickup_parent,
 		"interactable_parent": interactable_parent,
 		"loot_service": loot_service,
+		"event_service": event_service,
 		"normal_enemy_definitions": NORMAL_ENEMIES,
 		"elite_affix_pool": ELITE_AFFIXES,
 		"mini_boss_definition": MINI_BOSS,
 		"boss_definition": BOSS,
+		"event_definitions": ROOM_EVENTS,
 		"spawn_points": spawn_points,
 		"reward_points": reward_points,
 		"player_start": $Arena/PlayerStart,
@@ -157,6 +172,8 @@ func _on_player_died() -> void:
 	_settle_current_run(false)
 	if dungeon_run.has_method("end_run"):
 		dungeon_run.end_run()
+	if player.has_method("clear_run_stat_modifiers"):
+		player.clear_run_stat_modifiers(false)
 
 func _on_run_completed() -> void:
 	if player.has_method("set_input_enabled"):
@@ -182,6 +199,8 @@ func _on_camp_requested() -> void:
 	current_run_active = false
 	run_settled = false
 	dungeon_run.end_run()
+	if player.has_method("clear_run_stat_modifiers"):
+		player.clear_run_stat_modifiers(false)
 	player.set_input_enabled(false)
 	hud.show_main_menu()
 

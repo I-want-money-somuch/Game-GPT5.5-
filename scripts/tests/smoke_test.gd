@@ -67,6 +67,10 @@ func _run() -> void:
 	_require(main.get_node("HUD").forge_panel.visible == true, "Forge station interaction should open forge UI")
 	run.advance_to_next_room()
 	await process_frame
+	_require(run.current_floor == 7, "Leaving forge room should advance to the event room")
+	_require(run.current_room_definition.id == &"event_room", "Floor seven should be the event room")
+	_require(_find_event_station(main) != null, "Event room should spawn one event station")
+	_require(main.get_node("ExitPortal").visible == true, "Event room should unlock the exit by default")
 	_require(main.get_node("HUD").forge_panel.visible == false, "Leaving forge room should close forge UI")
 	_require(main.get_node("HUD").forge_button.disabled == true, "Leaving forge room should lock forge UI")
 
@@ -92,9 +96,12 @@ func _run() -> void:
 	await process_frame
 
 	await _assert_player_death_state()
+	await _assert_event_room_effects()
 
 	var forge_room := load("res://resources/dungeon/forge_room.tres")
 	_require(forge_room != null and forge_room.forge_available, "Forge room should unlock forge UI")
+	var event_room := load("res://resources/dungeon/event_room.tres")
+	_require(event_room != null and event_room.room_type == RoomDefinition.RoomType.EVENT, "Event room resource should use EVENT type")
 	var treasure_room := load("res://resources/dungeon/treasure_room.tres")
 	_require(treasure_room != null and treasure_room.guaranteed_reward, "Treasure room should guarantee rewards")
 
@@ -204,6 +211,113 @@ func _assert_player_death_state() -> void:
 	_require(main.get_node("HUD").main_menu_overlay.visible == true, "Back to Camp should return to the main menu")
 	main.queue_free()
 	await process_frame
+
+func _assert_event_room_effects() -> void:
+	await _assert_ember_pact_event()
+	await _assert_iron_oath_event()
+	await _assert_trial_altar_event()
+
+func _assert_ember_pact_event() -> void:
+	var event_definition := load("res://resources/events/ember_pact.tres")
+	var main := await _start_event_room_fixture(event_definition)
+	var player = main.get_node("Player")
+	var station = _find_event_station(main)
+	var weapon := load("res://resources/weapons/ember_snap.tres")
+	var before_health: float = player.health
+	var packet_before = weapon.create_damage_packet(player)
+	player.modify_outgoing_packet(packet_before, weapon)
+	station.interact(player)
+	await process_frame
+	var packet_after = weapon.create_damage_packet(player)
+	player.modify_outgoing_packet(packet_after, weapon)
+	_require(is_equal_approx(player.health, before_health - 18.0), "Ember Pact should spend current health")
+	_require(packet_after.amount > packet_before.amount * 1.14, "Ember Pact should increase run damage")
+	_require(not station.is_in_group("interactables"), "Resolved Ember Pact should become non-interactable")
+	main.queue_free()
+	await process_frame
+
+func _assert_iron_oath_event() -> void:
+	var event_definition := load("res://resources/events/iron_oath.tres")
+	var main := await _start_event_room_fixture(event_definition)
+	var player = main.get_node("Player")
+	var station = _find_event_station(main)
+	var weapon := load("res://resources/weapons/ember_snap.tres")
+	var armor = player.armor_component
+	var before_durability: float = armor.current_durability
+	var before_armor: float = armor.max_armor
+	var packet_before = weapon.create_damage_packet(player)
+	player.modify_outgoing_packet(packet_before, weapon)
+	station.interact(player)
+	await process_frame
+	var packet_after = weapon.create_damage_packet(player)
+	player.modify_outgoing_packet(packet_after, weapon)
+	_require(armor.max_armor > before_armor, "Iron Oath should increase armor for the run")
+	_require(is_equal_approx(armor.current_durability, before_durability - 25.0), "Iron Oath should spend armor durability")
+	_require(packet_after.armor_pierce >= packet_before.armor_pierce + 0.09, "Iron Oath should increase armor pierce")
+	main.queue_free()
+	await process_frame
+
+func _assert_trial_altar_event() -> void:
+	var event_definition := load("res://resources/events/trial_altar.tres")
+	var main := await _start_event_room_fixture(event_definition)
+	var run = main.get_node("DungeonRun")
+	var player = main.get_node("Player")
+	var station = _find_event_station(main)
+	_require(run.exit_unlocked, "Trial fixture should start with an unlocked event room exit")
+	station.interact(player)
+	await process_frame
+	_require(not run.exit_unlocked, "Trial Altar should lock the exit while the trial enemy lives")
+	_require(run.live_enemies.size() == 1, "Trial Altar should spawn one trial enemy")
+	var enemy = run.live_enemies[0]
+	_require(enemy.definition.id == &"iron_husk", "Trial Altar should spawn an Iron Husk")
+	_require(enemy.is_elite_enemy(), "Trial Altar enemy should carry an elite affix")
+	_kill_enemy_for_test(enemy, player)
+	await process_frame
+	await process_frame
+	_require(run.live_enemies.is_empty(), "Trial enemy death should clear the trial")
+	_require(run.exit_unlocked, "Trial completion should unlock the exit")
+	_require(_find_reward_chest(main) != null, "Trial completion should spawn a reward chest")
+	main.queue_free()
+	await process_frame
+
+func _start_event_room_fixture(event_definition: Resource) -> Node:
+	var main_scene := load("res://scenes/main/Main.tscn")
+	var main = main_scene.instantiate()
+	root.add_child(main)
+	await process_frame
+	main.configure_profile_path_for_test("user://smoke_event_profile_v003.json", true)
+	main.start_run_for_test()
+	await process_frame
+	var run = main.get_node("DungeonRun")
+	run.current_floor = 7
+	run.force_next_event_for_test(event_definition)
+	run._start_current_room()
+	await process_frame
+	_require(run.current_room_definition.id == &"event_room", "Event fixture should start floor seven as an event room")
+	_require(_find_event_station(main) != null, "Event fixture should spawn an event station")
+	return main
+
+func _find_event_station(main: Node) -> Node:
+	for child in main.get_node("Interactables").get_children():
+		if child.get("event_definition") != null and child.has_method("interact"):
+			return child
+	return null
+
+func _find_reward_chest(main: Node) -> Node:
+	for child in main.get_node("Interactables").get_children():
+		if child.has_method("get_prompt_text") and child.get_prompt_text() == "Open Chest":
+			return child
+	return null
+
+func _kill_enemy_for_test(enemy: Node, player: Node) -> void:
+	var packet = DamagePacketScript.new()
+	packet.amount = 99999.0
+	packet.source = player
+	packet.element = &"physical"
+	packet.armor_pierce = 1.0
+	packet.hit_position = enemy.global_position
+	packet.hit_direction = Vector2.RIGHT
+	enemy.take_damage(packet)
 
 func _require(condition: bool, message: String) -> void:
 	if condition:

@@ -33,6 +33,7 @@ var affix_effect_service: Node
 var input_enabled := true
 var is_dead := false
 var meta_stat_modifiers := {}
+var run_stat_modifiers := {}
 var rng := RandomNumberGenerator.new()
 
 @onready var armor_component: Node = $ArmorComponent
@@ -64,6 +65,7 @@ func initialize(loadout_class: Resource, weapon: Resource, projectile: PackedSce
 	is_dead = false
 	knockback_velocity = Vector2.ZERO
 	meta_stat_modifiers.clear()
+	run_stat_modifiers.clear()
 	_recalculate_stats(true)
 	var shape := _body_shape()
 	if shape != null:
@@ -154,6 +156,40 @@ func set_meta_stat_modifiers(modifiers: Dictionary, reset_health := true) -> voi
 	meta_stat_modifiers = modifiers.duplicate(true)
 	_recalculate_stats(reset_health)
 	loadout_changed.emit(inventory, equipped)
+
+func apply_run_stat_modifiers(modifiers: Resource, reset_health := false) -> void:
+	if modifiers == null or not modifiers.has_method("to_dictionary"):
+		return
+	for key in modifiers.to_dictionary().keys():
+		run_stat_modifiers[key] = float(run_stat_modifiers.get(key, 0.0)) + float(modifiers.to_dictionary()[key])
+	_recalculate_stats(reset_health)
+	loadout_changed.emit(inventory, equipped)
+
+func clear_run_stat_modifiers(reset_health := false) -> void:
+	run_stat_modifiers.clear()
+	_recalculate_stats(reset_health)
+	loadout_changed.emit(inventory, equipped)
+
+func spend_health_for_event(amount: float) -> bool:
+	if is_dead or health - amount < 1.0:
+		return false
+	health = maxf(health - maxf(amount, 0.0), 1.0)
+	health_changed.emit(health, max_health)
+	return true
+
+func current_armor_durability() -> float:
+	var armor := _armor_component()
+	if armor == null:
+		return 0.0
+	return float(armor.get("current_durability"))
+
+func spend_armor_durability_for_event(amount: float) -> bool:
+	var armor := _armor_component()
+	if armor == null or float(armor.get("current_durability")) < amount:
+		return false
+	if armor.has_method("damage_armor"):
+		armor.damage_armor(maxf(amount, 0.0))
+	return true
 
 func attack_rate_for_weapon(weapon: Resource) -> float:
 	if weapon == null:
@@ -384,6 +420,9 @@ func _current_stats(weapon: Resource = null) -> Dictionary:
 
 	for key in meta_stat_modifiers.keys():
 		stats[key] = float(stats.get(key, 0.0)) + float(meta_stat_modifiers[key])
+
+	for key in run_stat_modifiers.keys():
+		stats[key] = float(stats.get(key, 0.0)) + float(run_stat_modifiers[key])
 
 	for equipment in equipped.values():
 		if equipment is Resource and equipment.get("stat_modifiers") != null:

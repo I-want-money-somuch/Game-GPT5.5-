@@ -6,6 +6,7 @@ signal room_cleared(floor: int)
 signal run_completed
 signal enemy_defeated(enemy: Node, enemy_definition: Resource)
 signal forge_station_activated
+signal event_station_activated(event_definition: Resource, result: Dictionary)
 
 @export var max_floor := 10
 
@@ -13,14 +14,17 @@ var player: Node2D
 var enemy_scene: PackedScene
 var reward_chest_scene: PackedScene
 var forge_station_scene: PackedScene
+var event_station_scene: PackedScene
 var enemy_parent: Node
 var pickup_parent: Node
 var interactable_parent: Node
 var loot_service: Node
+var event_service: Node
 var normal_enemy_definitions: Array = []
 var elite_affix_pool: Array = []
 var mini_boss_definition: Resource
 var boss_definition: Resource
+var event_definitions: Array = []
 var spawn_points: Array = []
 var reward_points: Array = []
 var player_start: Marker2D
@@ -33,7 +37,11 @@ var live_enemies: Array = []
 var exit_unlocked := false
 var room_rewarded := false
 var reward_chest_spawned := false
+var room_cleared_emitted := false
 var current_reward_source_definition: Resource
+var event_trial_active := false
+var event_trial_reward_attempts := 0
+var forced_event_definition_for_test: Resource
 var run_active := false
 var rng := RandomNumberGenerator.new()
 
@@ -45,14 +53,17 @@ func configure(config: Dictionary) -> void:
 	enemy_scene = config.get("enemy_scene")
 	reward_chest_scene = config.get("reward_chest_scene")
 	forge_station_scene = config.get("forge_station_scene")
+	event_station_scene = config.get("event_station_scene")
 	enemy_parent = config.get("enemy_parent")
 	pickup_parent = config.get("pickup_parent")
 	interactable_parent = config.get("interactable_parent")
 	loot_service = config.get("loot_service")
+	event_service = config.get("event_service")
 	normal_enemy_definitions = config.get("normal_enemy_definitions", [])
 	elite_affix_pool = config.get("elite_affix_pool", [])
 	mini_boss_definition = config.get("mini_boss_definition")
 	boss_definition = config.get("boss_definition")
+	event_definitions = config.get("event_definitions", [])
 	spawn_points = config.get("spawn_points", [])
 	reward_points = config.get("reward_points", [])
 	player_start = config.get("player_start")
@@ -80,6 +91,8 @@ func advance_to_next_room() -> void:
 func end_run() -> void:
 	run_active = false
 	exit_unlocked = false
+	event_trial_active = false
+	event_trial_reward_attempts = 0
 	_set_exit(false)
 	_clear_room_state()
 
@@ -94,12 +107,18 @@ func _start_current_room() -> void:
 	exit_unlocked = false
 	room_rewarded = false
 	reward_chest_spawned = false
+	room_cleared_emitted = false
 	current_reward_source_definition = null
+	event_trial_active = false
+	event_trial_reward_attempts = 0
 	_set_exit(false)
 
 	var room_type: String = current_room_definition.room_type_name() if current_room_definition != null else "combat"
 	room_started.emit(current_floor, room_type)
 	_spawn_forge_station_if_needed()
+	_spawn_event_station_if_needed()
+	if _should_unlock_exit_on_room_start():
+		_unlock_exit()
 
 	var spawn_plans := _spawn_plans_for_current_room()
 	if spawn_plans.is_empty():
@@ -217,12 +236,17 @@ func _on_enemy_died(enemy: Node, definition: Resource) -> void:
 		loot_service.drop_for_enemy(definition, enemy.global_position, current_floor)
 
 	if live_enemies.is_empty():
+		if event_trial_active:
+			_complete_event_trial()
+			return
 		_complete_room()
 
 func _complete_room() -> void:
 	if not run_active:
 		return
-	room_cleared.emit(current_floor)
+	if not room_cleared_emitted:
+		room_cleared.emit(current_floor)
+		room_cleared_emitted = true
 	if _spawn_room_reward_chest():
 		return
 
@@ -282,9 +306,99 @@ func _spawn_forge_station_if_needed() -> void:
 		station.activated.connect(func(_station: Node) -> void: forge_station_activated.emit())
 	interactable_parent.add_child(station)
 
+func _spawn_event_station_if_needed() -> void:
+	if current_room_definition == null or int(current_room_definition.get("room_type")) != RoomDefinition.RoomType.EVENT:
+		return
+	if event_station_scene == null or interactable_parent == null:
+		return
+
+	var definition := _pick_event_definition()
+	if definition == null:
+		return
+
+	var station := event_station_scene.instantiate()
+	station.global_position = _reward_position()
+	if station.has_method("configure"):
+		station.configure(event_service, definition)
+	if station.has_signal("activated"):
+		station.activated.connect(_on_event_station_activated)
+	interactable_parent.add_child(station)
+
+func _pick_event_definition() -> Resource:
+	if forced_event_definition_for_test != null:
+		var definition := forced_event_definition_for_test
+		forced_event_definition_for_test = null
+		return definition
+	if event_definitions.is_empty():
+		return null
+	return event_definitions[rng.randi_range(0, event_definitions.size() - 1)]
+
+func _on_event_station_activated(_station: Node, event_definition: Resource, result: Dictionary) -> void:
+	event_station_activated.emit(event_definition, result)
+	if not bool(result.get("success", false)) or event_definition == null:
+		return
+	if event_definition.get("event_type") == &"trial":
+		_start_event_trial(event_definition)
+
+func _start_event_trial(event_definition: Resource) -> void:
+	if event_trial_active:
+		return
+	event_trial_active = true
+	event_trial_reward_attempts = maxi(int(event_definition.get("reward_attempts")), 0)
+	if bool(event_definition.get("exit_lock_during_trial")):
+		_lock_exit()
+
+	var definition := _normal_enemy_definition_for_id(event_definition.get("trial_enemy_id"))
+	if definition == null and not normal_enemy_definitions.is_empty():
+		definition = normal_enemy_definitions.back()
+	if definition == null:
+		_complete_event_trial()
+		return
+
+	var affixes := []
+	if bool(event_definition.get("trial_uses_elite_affix")):
+		affixes.append(_roll_elite_affix())
+	_spawn_enemy(definition, _spawn_position(live_enemies.size()), affixes)
+
+func _complete_event_trial() -> void:
+	event_trial_active = false
+	if event_trial_reward_attempts > 0:
+		_spawn_event_reward_chest(event_trial_reward_attempts)
+	event_trial_reward_attempts = 0
+	_unlock_exit()
+
+func _spawn_event_reward_chest(attempts: int) -> void:
+	if reward_chest_scene == null or interactable_parent == null:
+		if loot_service != null and loot_service.has_method("drop_room_reward"):
+			loot_service.drop_room_reward(_reward_position(), current_floor, attempts, true, null)
+		return
+
+	var chest := reward_chest_scene.instantiate()
+	chest.global_position = _reward_position() + Vector2(0, 42)
+	if chest.has_method("configure"):
+		chest.configure(loot_service, current_floor, attempts, true, null)
+	interactable_parent.add_child(chest)
+
+func _normal_enemy_definition_for_id(enemy_id: StringName) -> Resource:
+	for definition in normal_enemy_definitions:
+		if definition != null and definition.get("id") == enemy_id:
+			return definition
+	return null
+
+func _should_unlock_exit_on_room_start() -> bool:
+	if current_room_definition == null:
+		return false
+	if not bool(current_room_definition.get("exit_unlocked_on_start")):
+		return false
+	return not current_room_definition.has_encounter() and int(current_room_definition.get("reward_attempts")) <= 0
+
 func _unlock_exit() -> void:
 	exit_unlocked = true
 	_set_exit(true)
+
+func _lock_exit() -> void:
+	exit_unlocked = false
+	_set_exit(false)
 
 func _set_exit(available: bool) -> void:
 	if exit_portal == null or not exit_portal.has_method("set_available"):
@@ -320,3 +434,6 @@ func _clear_room_state() -> void:
 	for projectile in get_tree().get_nodes_in_group("projectiles"):
 		if is_instance_valid(projectile):
 			projectile.queue_free()
+
+func force_next_event_for_test(event_definition: Resource) -> void:
+	forced_event_definition_for_test = event_definition

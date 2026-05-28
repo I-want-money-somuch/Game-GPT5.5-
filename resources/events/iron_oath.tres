@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RoomEventDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_event_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_iron_oath"]
+script = ExtResource("2")
+armor = 4.0
+armor_pierce = 0.1
+
+[resource]
+script = ExtResource("1")
+id = &"iron_oath"
+display_name = "Iron Oath"
+event_type = &"stat_pact"
+prompt_text = "Swear Iron Oath"
+description = "Scar your plating for sharper armor break pressure."
+event_color = Color(0.62, 0.68, 0.74, 1)
+armor_durability_cost = 25.0
+stat_modifiers = SubResource("StatBlock_iron_oath")
+one_shot = true

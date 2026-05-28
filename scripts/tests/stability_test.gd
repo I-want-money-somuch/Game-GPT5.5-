@@ -10,6 +10,7 @@ func _run() -> void:
 	await _assert_elite_room_cadence()
 	await _assert_elite_affix_runtime()
 	await _assert_weapon_affix_effect_runtime()
+	await _assert_event_room_runtime()
 	await _assert_boss_room_regression(5, &"cinder_bulwark", [&"cinderplate_core", &"bulwark_ember_ring"], false)
 	await _assert_boss_room_regression(10, &"depths_warden", [&"warden_rift_staff", &"abyssal_guard_helm"], true)
 	await _assert_ten_room_stress()
@@ -119,6 +120,80 @@ func _assert_weapon_affix_effect_runtime() -> void:
 	await _assert_fire_burst_effect()
 	await _assert_frostbite_effect()
 	await _assert_chain_lightning_effect()
+
+func _assert_event_room_runtime() -> void:
+	await _assert_event_cost_guards()
+	await _assert_event_one_shot()
+	await _assert_trial_event_flow()
+
+func _assert_event_cost_guards() -> void:
+	var ember_fixture := await _spawn_event_fixture(load("res://resources/events/ember_pact.tres"))
+	var ember_player = ember_fixture["player"]
+	var ember_station = ember_fixture["station"]
+	ember_player.health = 10.0
+	ember_station.interact(ember_player)
+	await process_frame
+	_require(is_equal_approx(ember_player.health, 10.0), "Ember Pact should not trigger when it would kill the player")
+	_require(ember_station.is_in_group("interactables"), "Failed Ember Pact should remain available")
+	_cleanup_event_fixture(ember_fixture)
+
+	var iron_fixture := await _spawn_event_fixture(load("res://resources/events/iron_oath.tres"))
+	var iron_player = iron_fixture["player"]
+	var iron_station = iron_fixture["station"]
+	var armor = iron_player.armor_component
+	var armor_before: float = armor.max_armor
+	armor.current_durability = 5.0
+	iron_station.interact(iron_player)
+	await process_frame
+	_require(is_equal_approx(armor.current_durability, 5.0), "Iron Oath should not spend insufficient armor durability")
+	_require(is_equal_approx(armor.max_armor, armor_before), "Failed Iron Oath should not grant armor")
+	_require(iron_station.is_in_group("interactables"), "Failed Iron Oath should remain available")
+	_cleanup_event_fixture(iron_fixture)
+
+func _assert_event_one_shot() -> void:
+	var fixture := await _spawn_event_fixture(load("res://resources/events/ember_pact.tres"))
+	var player = fixture["player"]
+	var station = fixture["station"]
+	var before_health: float = player.health
+	station.interact(player)
+	await process_frame
+	var after_first: float = player.health
+	station.interact(player)
+	await process_frame
+	_require(is_equal_approx(after_first, before_health - 18.0), "One-shot event should apply its cost once")
+	_require(is_equal_approx(player.health, after_first), "Repeating a resolved event should not apply cost twice")
+	_require(not station.is_in_group("interactables"), "Resolved one-shot event should leave the interactable group")
+	_cleanup_event_fixture(fixture)
+
+func _assert_trial_event_flow() -> void:
+	var fixture := await _spawn_event_fixture(load("res://resources/events/trial_altar.tres"))
+	var main = fixture["main"]
+	var run = fixture["run"]
+	var player = fixture["player"]
+	var station = fixture["station"]
+	_require(run.exit_unlocked, "Trial event room should start with an optional exit")
+	station.interact(player)
+	await process_frame
+	_require(not run.exit_unlocked, "Trial event should lock the exit")
+	_require(run.live_enemies.size() == 1, "Trial event should spawn exactly one enemy")
+	var enemy = run.live_enemies[0]
+	_require(enemy.definition.id == &"iron_husk", "Trial event should spawn Iron Husk")
+	_require(enemy.is_elite_enemy(), "Trial event should apply an elite affix")
+	_kill_enemy(enemy, player)
+	await process_frame
+	await process_frame
+	_require(run.live_enemies.is_empty(), "Trial event enemy death should not leave stale live enemies")
+	_require(run.exit_unlocked, "Trial event completion should unlock the exit")
+	var chest = _find_reward_chest(main)
+	_require(chest != null, "Trial event completion should spawn a reward chest")
+	var pickups_before: int = main.get_node("Pickups").get_child_count()
+	chest.interact(player)
+	await process_frame
+	_require(main.get_node("Pickups").get_child_count() > pickups_before, "Trial reward chest should drop loot")
+	station.interact(player)
+	await process_frame
+	_require(_count_reward_chests(main) == 1, "Resolved Trial Altar should not spawn duplicate chests")
+	_cleanup_event_fixture(fixture)
 
 func _assert_fire_burst_effect() -> void:
 	var fixture := await _spawn_affix_fixture(3)
@@ -350,6 +425,19 @@ func _find_forge_station(main: Node) -> Node:
 			return child
 	return null
 
+func _find_event_station(main: Node) -> Node:
+	for child in main.get_node("Interactables").get_children():
+		if child.get("event_definition") != null and child.has_method("interact"):
+			return child
+	return null
+
+func _count_reward_chests(main: Node) -> int:
+	var count := 0
+	for child in main.get_node("Interactables").get_children():
+		if child.has_method("get_prompt_text") and child.get_prompt_text() == "Open Chest":
+			count += 1
+	return count
+
 func _pickup_ids_include(main: Node, expected_ids: Array) -> bool:
 	for pickup in main.get_node("Pickups").get_children():
 		var item = pickup.get("item_definition")
@@ -449,6 +537,28 @@ func _spawn_affix_fixture(enemy_count: int) -> Dictionary:
 		"player": player,
 		"enemies": enemies,
 	}
+
+func _spawn_event_fixture(event_definition: Resource) -> Dictionary:
+	var main := await _instantiate_main()
+	var run = main.get_node("DungeonRun")
+	run.current_floor = 7
+	run.force_next_event_for_test(event_definition)
+	run._start_current_room()
+	await process_frame
+	var station = _find_event_station(main)
+	_require(run.current_room_definition.id == &"event_room", "Event fixture should use floor seven event room")
+	_require(station != null, "Event fixture should spawn an event station")
+	return {
+		"main": main,
+		"run": run,
+		"player": main.get_node("Player"),
+		"station": station,
+	}
+
+func _cleanup_event_fixture(fixture: Dictionary) -> void:
+	if fixture.has("main") and is_instance_valid(fixture["main"]):
+		fixture["main"].queue_free()
+	_cleanup_runtime_nodes()
 
 func _cleanup_affix_fixture(fixture: Dictionary) -> void:
 	if fixture.has("service") and is_instance_valid(fixture["service"]):

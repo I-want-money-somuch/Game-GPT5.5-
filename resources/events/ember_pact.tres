@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RoomEventDefinition" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_event_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_ember_pact"]
+script = ExtResource("2")
+damage_multiplier = 0.15
+
+[resource]
+script = ExtResource("1")
+id = &"ember_pact"
+display_name = "Ember Pact"
+event_type = &"stat_pact"
+prompt_text = "Invoke Ember Pact"
+description = "Trade blood for a run-long damage surge."
+event_color = Color(0.95, 0.28, 0.1, 1)
+hp_cost = 18.0
+stat_modifiers = SubResource("StatBlock_ember_pact")
+one_shot = true

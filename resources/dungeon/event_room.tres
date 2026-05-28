@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RoomDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"event_room"
+display_name = "Event Room"
+room_type = 5
+enemy_group = &"none"
+enemy_count = 0
+exit_unlocked_on_start = true
+floor_color = Color(0.075, 0.08, 0.115, 1)
+accent_color = Color(0.78, 0.42, 0.82, 1)

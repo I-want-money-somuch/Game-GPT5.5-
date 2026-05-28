@@ -14,6 +14,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - LAN-ready session wrapper using Godot ENet for a later co-op pass
 - Boss-specific loot tables, skill profiles, and mechanic profiles
 - Main menu camp with permanent meta progression and JSON profile saving
+- In-run event room with shrine and trial interactables
 
 ## Architecture goals
 
@@ -64,7 +65,7 @@ The MVP run uses ten data-driven rooms:
 4. Elite
 5. Mini boss
 6. Forge
-7. Combat
+7. Event
 8. Elite
 9. Treasure
 10. Boss
@@ -73,3 +74,9 @@ Bosses now use dedicated loot tables and skill/mechanic profiles. Current exampl
 
 - Cinder Bulwark: charge, molten guard, shard burst
 - Depths Warden: void lance, gravity ring, rift fan
+
+The event room uses run-only risk/reward choices:
+
+- Ember Pact trades current health for run-long damage.
+- Iron Oath spends armor durability for armor and armor pierce.
+- Trial Altar locks the exit, spawns an elite Iron Husk, then opens a bonus chest.

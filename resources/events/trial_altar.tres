@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoomEventDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_event_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"trial_altar"
+display_name = "Trial Altar"
+event_type = &"trial"
+prompt_text = "Begin Trial"
+description = "Call an elite guardian and claim its sealed cache."
+event_color = Color(0.74, 0.36, 0.95, 1)
+one_shot = true
+reward_attempts = 1
+trial_enemy_id = &"iron_husk"
+trial_uses_elite_affix = true
+exit_lock_during_trial = true
