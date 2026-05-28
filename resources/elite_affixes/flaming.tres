@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EliteAffixDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/elite_affix_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"flaming"
+display_name = "Flaming"
+description = "Explodes after death with a readable short warning."
+marker_color = Color(1, 0.28, 0.08, 1)
+max_health_multiplier = 1.12
+contact_damage_multiplier = 1.08
+death_explosion_radius = 72.0
+death_explosion_damage = 14.0
+death_explosion_warning = 0.2
+death_explosion_knockback = 180.0
+death_explosion_color = Color(1, 0.24, 0.06, 0.42)

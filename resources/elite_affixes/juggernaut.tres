@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EliteAffixDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/elite_affix_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"juggernaut"
+display_name = "Juggernaut"
+description = "Carries heavier armor and shrugs off stagger quickly."
+marker_color = Color(0.74, 0.7, 0.62, 1)
+max_health_multiplier = 1.28
+move_speed_multiplier = 0.92
+armor_bonus = 14.0
+armor_multiplier = 1.45
+armor_durability_multiplier = 1.45
+armor_damage_reduction_bonus = 0.04
+stagger_duration_multiplier = 0.45

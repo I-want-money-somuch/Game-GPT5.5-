@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://1vu0hklj4ddg"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_rivet_chestplate"]
+script = ExtResource("2")
+armor = 18.0
+armor_durability = 70.0
+armor_damage_reduction = 0.08
+move_speed = -8.0
+
+[resource]
+script = ExtResource("1")
+id = &"rivet_chestplate"
+display_name = "Rivet Chestplate"
+description = "Heavy front plating with a real mobility cost."
+rarity = 1
+stat_modifiers = SubResource("StatBlock_rivet_chestplate")

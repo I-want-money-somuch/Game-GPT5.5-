@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="BossSkillProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/boss_skill_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"depths_warden_skills"
+display_name = "Depths Warden Skills"
+skill_ids = Array[StringName]([&"void_lance", &"gravity_ring", &"rift_fan"])
+cooldowns = PackedFloat32Array(3.2, 5.8, 4.4)
+weights = PackedFloat32Array(1.0, 1.1, 1.0)
+phase_two_cooldown_multiplier = 0.66
+phase_two_power_multiplier = 1.4
+

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://n3el8tcdmp7f"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_cinderplate_core"]
+script = ExtResource("2")
+armor = 26.0
+armor_durability = 105.0
+armor_damage_reduction = 0.11
+move_speed = -10.0
+
+[resource]
+script = ExtResource("1")
+id = &"cinderplate_core"
+display_name = "Cinderplate Core"
+description = "A dense chest core that rewards armor-heavy builds."
+rarity = 2
+stat_modifiers = SubResource("StatBlock_cinderplate_core")

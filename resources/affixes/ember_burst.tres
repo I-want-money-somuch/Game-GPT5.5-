@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AffixDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/affix_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ember_burst"
+display_name = "Ember Burst"
+description = "Marks this weapon for future fire burst effects."
+tags = Array[StringName]([&"fire", &"burst"])
+proc_chance = 0.18
+effect_id = &"fire_burst"
+

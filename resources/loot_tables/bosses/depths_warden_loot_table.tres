@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="LootTable" format=3 uid="uid://6yr5wb5pqe48"]
+
+[ext_resource type="Script" uid="uid://gbm6eui17mlg" path="res://scripts/resources/loot_table.gd" id="1"]
+[ext_resource type="Script" uid="uid://1n713o6ejfar" path="res://scripts/resources/loot_entry.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/weapons/boss/warden_rift_staff.tres" id="3"]
+[ext_resource type="Resource" uid="uid://timyhgogt8a8" path="res://resources/equipment/boss/abyssal_guard_helm.tres" id="4"]
+[ext_resource type="Resource" uid="uid://bj1olms6ig0d4" path="res://resources/equipment/lumen_ring.tres" id="5"]
+
+[sub_resource type="Resource" id="LootEntry_warden_rift_staff"]
+script = ExtResource("2")
+item = ExtResource("3")
+drop_chance = 1.0
+weight = 14
+
+[sub_resource type="Resource" id="LootEntry_abyssal_guard_helm"]
+script = ExtResource("2")
+item = ExtResource("4")
+drop_chance = 1.0
+weight = 12
+
+[sub_resource type="Resource" id="LootEntry_lumen_ring_warden"]
+script = ExtResource("2")
+item = ExtResource("5")
+drop_chance = 0.8
+weight = 6
+
+[resource]
+script = ExtResource("1")
+id = &"depths_warden_loot_table"
+entries = Array[Resource]([SubResource("LootEntry_warden_rift_staff"), SubResource("LootEntry_abyssal_guard_helm"), SubResource("LootEntry_lumen_ring_warden")])
+guaranteed_entries = Array[Resource]([SubResource("LootEntry_warden_rift_staff"), SubResource("LootEntry_abyssal_guard_helm")])

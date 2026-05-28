@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="ClassDefinition" format=3 uid="uid://csmmk2ebnl1bl"]
+
+[ext_resource type="Script" uid="uid://b83tmpl8v5n1q" path="res://scripts/resources/class_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/weapons/ember_snap.tres" id="3"]
+
+[sub_resource type="Resource" id="StatBlock_vanguard"]
+script = ExtResource("2")
+max_health = 120.0
+armor = 12.0
+armor_durability = 45.0
+armor_damage_reduction = 0.06
+crit_chance = 0.03
+move_speed = 185.0
+
+[resource]
+script = ExtResource("1")
+id = &"vanguard"
+display_name = "Vanguard"
+description = "A front-line class built around armor uptime and steady weapon pressure."
+starting_weapon = ExtResource("3")
+active_skill_id = &"guard_dash"
+passive_id = &"armor_to_momentum"
+base_stats = SubResource("StatBlock_vanguard")
+growth_tags = Array[StringName]([&"armor", &"tempo", &"crit"])

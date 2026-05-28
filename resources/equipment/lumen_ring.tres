@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://bj1olms6ig0d4"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_lumen_ring"]
+script = ExtResource("2")
+crit_chance = 0.04
+skill_cooldown_reduction = 0.08
+energy_recovery = 0.2
+
+[resource]
+script = ExtResource("1")
+id = &"lumen_ring"
+display_name = "Lumen Ring"
+description = "A small ring that helps future active-skill builds."
+slot = 5
+rarity = 2
+stat_modifiers = SubResource("StatBlock_lumen_ring")

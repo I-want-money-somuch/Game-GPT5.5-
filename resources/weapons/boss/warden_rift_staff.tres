@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weapon_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/affixes/frostbite.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"warden_rift_staff"
+display_name = "Warden Rift Staff"
+description = "A boss-forged staff that fires slow, piercing rift bolts."
+family = 4
+rarity = 3
+element = 5
+base_damage = 36.0
+attack_rate = 0.95
+crit_chance = 0.16
+crit_damage = 1.9
+armor_pierce = 0.1
+knockback_force = 120.0
+projectile_speed = 390.0
+projectile_lifetime = 1.55
+pierce = 2
+durability = 120.0
+affixes = [ExtResource("2")]
+

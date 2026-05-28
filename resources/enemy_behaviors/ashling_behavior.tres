@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyBehaviorProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_behavior_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ashling_behavior"
+display_name = "Ashling Pounce"
+behavior_id = &"pounce_chaser"
+chase_range = 540.0
+preferred_range = 34.0
+attack_range = 48.0
+windup_duration = 0.18
+attack_duration = 0.12
+recover_duration = 0.24
+attack_cooldown = 0.82
+move_speed_multiplier = 1.18
+windup_move_multiplier = 0.25
+stagger_duration = 0.18
+attack_shape = 1
+attack_length = 62.0
+attack_width = 34.0
+dash_distance = 42.0
+dash_duration = 0.12
+knockback_force = 150.0
+warning_color = Color(1, 0.32, 0.12, 0.4)

@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="EnemyBehaviorProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_behavior_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"iron_husk_behavior"
+display_name = "Iron Husk Heavy Strike"
+behavior_id = &"heavy_striker"
+chase_range = 520.0
+preferred_range = 46.0
+attack_range = 52.0
+windup_duration = 0.56
+attack_duration = 0.14
+recover_duration = 0.55
+attack_cooldown = 1.3
+move_speed_multiplier = 0.85
+windup_move_multiplier = 0.0
+stagger_duration = 0.08
+attack_shape = 0
+attack_radius = 56.0
+knockback_force = 230.0
+warning_color = Color(0.95, 0.5, 0.16, 0.42)

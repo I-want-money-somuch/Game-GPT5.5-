@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="AffixDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/affix_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"frostbite"
+display_name = "Frostbite"
+description = "Marks this weapon for future freeze and shatter effects."
+tags = Array[StringName]([&"ice", &"control"])
+proc_chance = 0.2
+effect_id = &"frostbite"
+

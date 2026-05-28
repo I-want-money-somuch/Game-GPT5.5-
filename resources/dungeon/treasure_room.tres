@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RoomDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"treasure_room"
+display_name = "Treasure Room"
+room_type = 2
+enemy_group = &"none"
+enemy_count = 0
+reward_attempts = 2
+guaranteed_reward = true
+exit_unlocked_on_start = true
+floor_color = Color(0.08, 0.115, 0.105, 1)
+accent_color = Color(0.92, 0.72, 0.26, 1)
+

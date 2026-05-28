@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://cxfn4svpx1e30"]
+
+[ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/boss_skill_profiles/depths_warden_skills.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/boss_mechanic_profiles/depths_warden_mechanics.tres" id="4"]
+[ext_resource type="Resource" uid="uid://6yr5wb5pqe48" path="res://resources/loot_tables/bosses/depths_warden_loot_table.tres" id="5"]
+
+[sub_resource type="Resource" id="StatBlock_depths_warden"]
+script = ExtResource("2")
+max_health = 520.0
+armor = 45.0
+armor_durability = 210.0
+armor_damage_reduction = 0.16
+move_speed = 74.0
+
+[resource]
+script = ExtResource("1")
+id = &"depths_warden"
+display_name = "Depths Warden"
+description = "The first-theme boss for the ten-floor slice."
+enemy_type = 3
+armor_type = 3
+base_stats = SubResource("StatBlock_depths_warden")
+contact_damage = 24.0
+attack_range = 38.0
+attack_interval = 0.95
+aggro_range = 700.0
+color = Color(0.35, 0.12, 0.62, 1)
+boss_skill_profile = ExtResource("3")
+boss_mechanic_profile = ExtResource("4")
+boss_loot_table = ExtResource("5")

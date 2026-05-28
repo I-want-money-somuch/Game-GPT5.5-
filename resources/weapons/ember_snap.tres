@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weapon_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/affixes/ember_burst.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"ember_snap"
+display_name = "Ember Snap"
+description = "A compact sidearm tuned for fast close-range pressure."
+family = 0
+rarity = 1
+element = 1
+base_damage = 12.0
+attack_rate = 3.2
+crit_chance = 0.08
+crit_damage = 1.6
+armor_pierce = 0.03
+knockback_force = 82.0
+projectile_speed = 650.0
+projectile_lifetime = 0.85
+durability = 100.0
+affixes = [ExtResource("2")]

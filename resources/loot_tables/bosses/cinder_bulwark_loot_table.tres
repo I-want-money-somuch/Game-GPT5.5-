@@ -1,0 +1,31 @@
+[gd_resource type="Resource" script_class="LootTable" format=3 uid="uid://cefvvf1lfbmv0"]
+
+[ext_resource type="Script" uid="uid://gbm6eui17mlg" path="res://scripts/resources/loot_table.gd" id="1"]
+[ext_resource type="Script" uid="uid://1n713o6ejfar" path="res://scripts/resources/loot_entry.gd" id="2"]
+[ext_resource type="Resource" uid="uid://n3el8tcdmp7f" path="res://resources/equipment/boss/cinderplate_core.tres" id="3"]
+[ext_resource type="Resource" uid="uid://cgjjsm8vi5tj2" path="res://resources/equipment/boss/bulwark_ember_ring.tres" id="4"]
+[ext_resource type="Resource" path="res://resources/weapons/volt_spear.tres" id="5"]
+
+[sub_resource type="Resource" id="LootEntry_cinderplate_core"]
+script = ExtResource("2")
+item = ExtResource("3")
+drop_chance = 1.0
+weight = 14
+
+[sub_resource type="Resource" id="LootEntry_bulwark_ember_ring"]
+script = ExtResource("2")
+item = ExtResource("4")
+drop_chance = 1.0
+weight = 12
+
+[sub_resource type="Resource" id="LootEntry_volt_spear_cinder"]
+script = ExtResource("2")
+item = ExtResource("5")
+drop_chance = 0.8
+weight = 6
+
+[resource]
+script = ExtResource("1")
+id = &"cinder_bulwark_loot_table"
+entries = Array[Resource]([SubResource("LootEntry_cinderplate_core"), SubResource("LootEntry_bulwark_ember_ring"), SubResource("LootEntry_volt_spear_cinder")])
+guaranteed_entries = Array[Resource]([SubResource("LootEntry_cinderplate_core"), SubResource("LootEntry_bulwark_ember_ring")])

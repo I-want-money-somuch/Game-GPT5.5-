@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoomDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"boss_room"
+display_name = "Depths Warden"
+room_type = 6
+enemy_group = &"boss"
+enemy_count = 1
+reward_attempts = 4
+guaranteed_reward = true
+floor_color = Color(0.07, 0.055, 0.105, 1)
+accent_color = Color(0.55, 0.28, 0.88, 1)
+

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RoomDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"combat_room"
+display_name = "Combat Room"
+room_type = 0
+enemy_group = &"normal"
+enemy_count = 3
+reward_attempts = 1
+guaranteed_reward = true
+floor_color = Color(0.085, 0.1, 0.11, 1)
+accent_color = Color(0.33, 0.38, 0.4, 1)

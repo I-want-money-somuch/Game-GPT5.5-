@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EliteAffixDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/elite_affix_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"phasing"
+display_name = "Phasing"
+description = "Briefly becomes untouchable, then takes extra damage during recovery."
+marker_color = Color(0.62, 0.36, 1, 1)
+max_health_multiplier = 1.1
+phasing_interval = 2.4
+phasing_duration = 0.55
+phasing_recovery_duration = 0.7
+phasing_recovery_damage_taken_multiplier = 1.25

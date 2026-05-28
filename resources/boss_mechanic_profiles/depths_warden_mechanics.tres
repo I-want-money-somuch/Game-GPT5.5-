@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BossMechanicProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/boss_mechanic_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"depths_warden_mechanics"
+display_name = "Depths Warden Mechanics"
+phase_two_threshold = 0.5
+phase_transition_invulnerable_duration = 1.15
+phase_transition_damage_reduction = 1.0
+special_mechanics = Array[StringName]([&"phase_two", &"intangibility", &"shield_core_reserved", &"execute_window", &"environment_reserved"])
+mechanic_parameters = {
+&"intangibility_duration": 0.8,
+&"execute_warning_duration": 1.6
+}
+

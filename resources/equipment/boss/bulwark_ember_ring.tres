@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://cgjjsm8vi5tj2"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_bulwark_ember_ring"]
+script = ExtResource("2")
+max_health = 18.0
+crit_chance = 0.04
+armor_pierce = 0.05
+
+[resource]
+script = ExtResource("1")
+id = &"bulwark_ember_ring"
+display_name = "Bulwark Ember Ring"
+description = "A heated ring that turns pressure into piercing strikes."
+slot = 5
+rarity = 2
+stat_modifiers = SubResource("StatBlock_bulwark_ember_ring")

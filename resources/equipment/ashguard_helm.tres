@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://bnl6m67if2akl"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_ashguard_helm"]
+script = ExtResource("2")
+max_health = 10.0
+armor = 5.0
+armor_durability = 20.0
+
+[resource]
+script = ExtResource("1")
+id = &"ashguard_helm"
+display_name = "Ashguard Helm"
+description = "A plain helm reinforced against glancing strikes."
+slot = 0
+stat_modifiers = SubResource("StatBlock_ashguard_helm")

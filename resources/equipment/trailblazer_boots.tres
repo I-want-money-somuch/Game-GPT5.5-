@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://c5vtdw3mvrst8"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_trailblazer_boots"]
+script = ExtResource("2")
+move_speed = 24.0
+dodge_chance = 0.05
+
+[resource]
+script = ExtResource("1")
+id = &"trailblazer_boots"
+display_name = "Trailblazer Boots"
+description = "Light boots made for strafing through narrow rooms."
+slot = 3
+stat_modifiers = SubResource("StatBlock_trailblazer_boots")

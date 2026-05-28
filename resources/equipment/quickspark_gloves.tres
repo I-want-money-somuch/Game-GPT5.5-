@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" format=3 uid="uid://cuq7c0bxgub3h"]
+
+[ext_resource type="Script" uid="uid://dunkkv6i6oal5" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_quickspark_gloves"]
+script = ExtResource("2")
+crit_chance = 0.03
+attack_speed = 0.35
+
+[resource]
+script = ExtResource("1")
+id = &"quickspark_gloves"
+display_name = "Quickspark Gloves"
+description = "Conductive grips that favor rapid weapons."
+slot = 2
+rarity = 1
+stat_modifiers = SubResource("StatBlock_quickspark_gloves")

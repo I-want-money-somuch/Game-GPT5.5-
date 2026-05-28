@@ -1,0 +1,61 @@
+[gd_resource type="Resource" script_class="LootTable" format=3 uid="uid://b1tijwdenhw4u"]
+
+[ext_resource type="Script" uid="uid://gbm6eui17mlg" path="res://scripts/resources/loot_table.gd" id="1"]
+[ext_resource type="Script" uid="uid://1n713o6ejfar" path="res://scripts/resources/loot_entry.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/weapons/frostline_staff.tres" id="3"]
+[ext_resource type="Resource" path="res://resources/weapons/volt_spear.tres" id="4"]
+[ext_resource type="Resource" uid="uid://bnl6m67if2akl" path="res://resources/equipment/ashguard_helm.tres" id="5"]
+[ext_resource type="Resource" uid="uid://1vu0hklj4ddg" path="res://resources/equipment/rivet_chestplate.tres" id="6"]
+[ext_resource type="Resource" uid="uid://cuq7c0bxgub3h" path="res://resources/equipment/quickspark_gloves.tres" id="7"]
+[ext_resource type="Resource" uid="uid://c5vtdw3mvrst8" path="res://resources/equipment/trailblazer_boots.tres" id="8"]
+[ext_resource type="Resource" uid="uid://bj1olms6ig0d4" path="res://resources/equipment/lumen_ring.tres" id="9"]
+
+[sub_resource type="Resource" id="LootEntry_frostline_staff"]
+script = ExtResource("2")
+item = ExtResource("3")
+drop_chance = 0.18
+weight = 8
+min_floor = 2
+
+[sub_resource type="Resource" id="LootEntry_volt_spear"]
+script = ExtResource("2")
+item = ExtResource("4")
+drop_chance = 0.14
+weight = 7
+min_floor = 3
+
+[sub_resource type="Resource" id="LootEntry_ashguard_helm"]
+script = ExtResource("2")
+item = ExtResource("5")
+drop_chance = 0.28
+weight = 14
+
+[sub_resource type="Resource" id="LootEntry_rivet_chestplate"]
+script = ExtResource("2")
+item = ExtResource("6")
+drop_chance = 0.2
+min_floor = 2
+
+[sub_resource type="Resource" id="LootEntry_quickspark_gloves"]
+script = ExtResource("2")
+item = ExtResource("7")
+drop_chance = 0.24
+weight = 12
+
+[sub_resource type="Resource" id="LootEntry_trailblazer_boots"]
+script = ExtResource("2")
+item = ExtResource("8")
+drop_chance = 0.26
+weight = 13
+
+[sub_resource type="Resource" id="LootEntry_lumen_ring"]
+script = ExtResource("2")
+item = ExtResource("9")
+drop_chance = 0.16
+weight = 8
+min_floor = 4
+
+[resource]
+script = ExtResource("1")
+id = &"mvp_loot_table"
+entries = Array[Resource]([SubResource("LootEntry_frostline_staff"), SubResource("LootEntry_volt_spear"), SubResource("LootEntry_ashguard_helm"), SubResource("LootEntry_rivet_chestplate"), SubResource("LootEntry_quickspark_gloves"), SubResource("LootEntry_trailblazer_boots"), SubResource("LootEntry_lumen_ring")])

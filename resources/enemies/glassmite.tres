@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://b5wob13i435g8"]
+
+[ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemy_behaviors/glassmite_behavior.tres" id="3"]
+
+[sub_resource type="Resource" id="StatBlock_glassmite"]
+script = ExtResource("2")
+max_health = 18.0
+move_speed = 135.0
+dodge_chance = 0.04
+
+[resource]
+script = ExtResource("1")
+id = &"glassmite"
+display_name = "Glassmite"
+description = "Fragile, quick, and built to punish tunnel vision."
+base_stats = SubResource("StatBlock_glassmite")
+contact_damage = 5.0
+attack_range = 22.0
+attack_interval = 0.65
+aggro_range = 560.0
+color = Color(0.45, 0.95, 0.95, 1)
+behavior_profile = ExtResource("3")

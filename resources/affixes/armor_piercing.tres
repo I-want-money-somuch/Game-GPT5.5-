@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="AffixDefinition" format=3 uid="uid://cnijreiwxrf4t"]
+
+[ext_resource type="Script" uid="uid://dfyvvov85f5xf" path="res://scripts/resources/affix_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_armor_piercing"]
+script = ExtResource("2")
+armor_pierce = 0.08
+
+[resource]
+script = ExtResource("1")
+id = &"armor_piercing"
+display_name = "Armor Piercing"
+description = "Improves damage against armored targets."
+stat_modifiers = SubResource("StatBlock_armor_piercing")
+tags = Array[StringName]([&"pierce"])

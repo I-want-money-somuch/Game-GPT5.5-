@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RoomDefinition" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_definition.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"forge_room"
+display_name = "Forge Room"
+room_type = 4
+enemy_group = &"none"
+enemy_count = 0
+forge_available = true
+exit_unlocked_on_start = true
+floor_color = Color(0.105, 0.095, 0.105, 1)
+accent_color = Color(0.62, 0.68, 0.82, 1)
+

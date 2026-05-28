@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://bppduar200et2"]
+
+[ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemy_behaviors/iron_husk_behavior.tres" id="3"]
+
+[sub_resource type="Resource" id="StatBlock_iron_husk"]
+script = ExtResource("2")
+max_health = 48.0
+armor = 18.0
+armor_durability = 55.0
+armor_damage_reduction = 0.07
+move_speed = 68.0
+
+[resource]
+script = ExtResource("1")
+id = &"iron_husk"
+display_name = "Iron Husk"
+description = "A slow armored enemy that encourages pierce and armor break builds."
+armor_type = 2
+base_stats = SubResource("StatBlock_iron_husk")
+contact_damage = 12.0
+attack_range = 30.0
+attack_interval = 1.25
+aggro_range = 520.0
+color = Color(0.42, 0.45, 0.48, 1)
+behavior_profile = ExtResource("3")

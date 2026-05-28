@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="WeaponDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/weapon_definition.gd" id="1"]
+[ext_resource type="Resource" path="res://resources/affixes/frostbite.tres" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = &"frostline_staff"
+display_name = "Frostline Staff"
+description = "A slow arcane focus that rewards spacing and piercing shots."
+family = 4
+rarity = 2
+element = 2
+base_damage = 28.0
+attack_rate = 1.2
+crit_chance = 0.12
+crit_damage = 1.8
+armor_pierce = 0.04
+knockback_force = 118.0
+projectile_speed = 430.0
+projectile_lifetime = 1.35
+pierce = 1
+durability = 90.0
+affixes = [ExtResource("2")]

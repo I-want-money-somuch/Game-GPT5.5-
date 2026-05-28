@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyBehaviorProfile" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_behavior_profile.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"glassmite_behavior"
+display_name = "Glassmite Skirmish"
+behavior_id = &"skirmisher"
+chase_range = 560.0
+preferred_range = 92.0
+attack_range = 110.0
+windup_duration = 0.16
+attack_duration = 0.12
+recover_duration = 0.22
+attack_cooldown = 0.72
+move_speed_multiplier = 1.08
+windup_move_multiplier = 0.15
+stagger_duration = 0.22
+attack_shape = 1
+attack_length = 88.0
+attack_width = 28.0
+dash_distance = 72.0
+dash_duration = 0.13
+knockback_force = 120.0
+warning_color = Color(0.32, 0.95, 1, 0.36)

@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="EnemyDefinition" format=3 uid="uid://cvcvv02cg531j"]
+
+[ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+[ext_resource type="Resource" path="res://resources/enemy_behaviors/ashling_behavior.tres" id="3"]
+
+[sub_resource type="Resource" id="StatBlock_ashling"]
+script = ExtResource("2")
+max_health = 28.0
+armor = 2.0
+armor_durability = 12.0
+armor_damage_reduction = 0.02
+move_speed = 95.0
+
+[resource]
+script = ExtResource("1")
+id = &"ashling"
+display_name = "Ashling"
+description = "A fast pressure enemy that tests movement basics."
+base_stats = SubResource("StatBlock_ashling")
+contact_damage = 7.0
+attack_range = 26.0
+attack_interval = 0.9
+aggro_range = 540.0
+color = Color(0.95, 0.32, 0.18, 1)
+behavior_profile = ExtResource("3")

@@ -1,0 +1,57 @@
+# Forgebound Depths
+
+Original Godot 4.x top-down action roguelite dungeon looter prototype.
+
+## Current vertical slice
+
+- One playable class: Vanguard
+- Three starter/drop weapons
+- Five equipment definitions
+- Three normal enemies
+- One mini boss and one boss
+- Ten-floor run director
+- Data-driven loot, armor, and enhancement foundations
+- LAN-ready session wrapper using Godot ENet for a later co-op pass
+- Boss-specific loot tables, skill profiles, and mechanic profiles
+
+## Architecture goals
+
+- Content is defined mostly as Godot `Resource` files under `resources/`.
+- Runtime systems live under `scripts/systems/`.
+- Combat rules live under `scripts/combat/`.
+- Entity scripts stay thin and read definitions instead of hardcoding stats.
+- Multiplayer-facing logic is isolated in `multiplayer/` for future LAN co-op.
+
+## Run
+
+Open this folder with Godot 4.x and run the main scene.
+
+Controls:
+
+- Move: WASD or arrow keys
+- Aim: mouse
+- Fire: left mouse button
+- Interact: E
+- Equipment panel: `Equipment` button
+- Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
+- Exit room: walk into the portal after the room is clear
+
+## Current room sequence
+
+The MVP run uses ten data-driven rooms:
+
+1. Combat
+2. Combat
+3. Treasure
+4. Elite
+5. Mini boss
+6. Forge
+7. Combat
+8. Elite
+9. Treasure
+10. Boss
+
+Bosses now use dedicated loot tables and skill/mechanic profiles. Current examples:
+
+- Cinder Bulwark: charge, molten guard, shard burst
+- Depths Warden: void lance, gravity ring, rift fan

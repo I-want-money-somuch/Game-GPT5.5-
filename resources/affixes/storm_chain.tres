@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AffixDefinition" format=3 uid="uid://cm1r0i8hvjgsn"]
+
+[ext_resource type="Script" uid="uid://dfyvvov85f5xf" path="res://scripts/resources/affix_definition.gd" id="1"]
+[ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_storm_chain"]
+script = ExtResource("2")
+attack_speed = 0.15
+
+[resource]
+script = ExtResource("1")
+id = &"storm_chain"
+display_name = "Storm Chain"
+description = "Marks this weapon for future chain lightning effects."
+stat_modifiers = SubResource("StatBlock_storm_chain")
+tags = Array[StringName]([&"lightning", &"chain"])
+proc_chance = 0.16
+effect_id = &"chain_lightning"
