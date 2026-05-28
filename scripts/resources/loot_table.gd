@@ -5,7 +5,7 @@ extends Resource
 @export var entries: Array[Resource] = []
 @export var guaranteed_entries: Array[Resource] = []
 
-func roll(rng: RandomNumberGenerator, floor: int = 1) -> Resource:
+func roll(rng: RandomNumberGenerator, floor: int = 1, drop_chance_bonus := 0.0) -> Resource:
 	var candidates: Array[Resource] = []
 	var total_weight := 0
 	for entry in entries:
@@ -13,7 +13,8 @@ func roll(rng: RandomNumberGenerator, floor: int = 1) -> Resource:
 			continue
 		if not entry.is_available(floor):
 			continue
-		if rng.randf() > entry.drop_chance:
+		var effective_chance := clampf(float(entry.drop_chance) + drop_chance_bonus, 0.0, 1.0)
+		if rng.randf() > effective_chance:
 			continue
 		candidates.append(entry)
 		total_weight += entry.weight

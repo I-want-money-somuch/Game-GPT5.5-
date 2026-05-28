@@ -15,9 +15,25 @@ func _run() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_profile_path_for_test("user://smoke_profile_v002.json", true)
+	await process_frame
 	var run = main.get_node("DungeonRun")
+	var player_main = main.get_node("Player")
+	_require(main.get_node("HUD").main_menu_overlay.visible, "Main scene should start at the camp menu")
+	_require(not run.run_active, "Dungeon run should not start before Start Run")
+	_require(not player_main.input_enabled, "Player input should be disabled at camp")
+	_assert_meta_menu_and_talents(main)
+	main.start_run_for_test()
+	await process_frame
 	_require(run.current_room_definition != null, "Run should start in a room definition")
 	_require(run.current_room_definition.id == &"combat_room", "Run should start in combat room")
+	_require(player_main.max_health >= 130.0, "Vital Core should increase starting health")
+	_require(player_main.armor_component.max_armor >= 16.0, "Reinforced Plating should increase armor")
+	_require(main.get_node("LootService").enemy_drop_chance_bonus >= 0.03, "Scavenger Instinct should increase enemy drop chance")
+	var starter_weapon_for_meta := load("res://resources/weapons/ember_snap.tres")
+	var meta_damage_packet = starter_weapon_for_meta.create_damage_packet(player_main)
+	player_main.modify_outgoing_packet(meta_damage_packet, starter_weapon_for_meta)
+	_require(meta_damage_packet.amount > starter_weapon_for_meta.base_damage * 1.04, "Weapon Training should increase outgoing damage")
 	_assert_equipment_detail_ui(main)
 	_require(main.get_node("ExitPortal").visible == false, "Exit should start locked in combat rooms")
 	for enemy in run.live_enemies:
@@ -167,8 +183,12 @@ func _assert_player_death_state() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_profile_path_for_test("user://smoke_death_profile_v002.json", true)
+	main.start_run_for_test()
+	await process_frame
 	var player = main.get_node("Player")
 	var run = main.get_node("DungeonRun")
+	var meta = main.get_node("MetaProgressionService")
 	var packet = DamagePacketScript.new()
 	packet.amount = 10000.0
 	packet.hit_position = player.global_position
@@ -178,6 +198,10 @@ func _assert_player_death_state() -> void:
 	_require(not player.input_enabled, "Fatal damage should disable player input")
 	_require(not run.run_active, "Fatal damage should stop the active dungeon run")
 	_require(main.get_node("HUD").run_end_overlay.visible == true, "Fatal damage should show the death overlay")
+	_require(int(meta.profile_snapshot().get("souls", 0)) >= 1, "Fatal damage should still award souls")
+	_require(int(meta.profile_snapshot().get("talent_points", 0)) >= 1, "Fatal damage should still award talent points")
+	main.back_to_camp_for_test()
+	_require(main.get_node("HUD").main_menu_overlay.visible == true, "Back to Camp should return to the main menu")
 	main.queue_free()
 	await process_frame
 
@@ -186,6 +210,31 @@ func _require(condition: bool, message: String) -> void:
 		return
 	push_error(message)
 	quit(1)
+
+func _assert_meta_menu_and_talents(main: Node) -> void:
+	var meta = main.get_node("MetaProgressionService")
+	var hud = main.get_node("HUD")
+	meta.profile["talent_points"] = 20
+	meta.save_profile()
+	main.purchase_talent_for_test(&"vital_core")
+	main.purchase_talent_for_test(&"reinforced_plating")
+	main.purchase_talent_for_test(&"weapon_training")
+	main.purchase_talent_for_test(&"scavenger_instinct")
+	_require(meta.talent_level(&"vital_core") == 1, "Vital Core should be purchasable")
+	_require(meta.talent_level(&"reinforced_plating") == 1, "Reinforced Plating should be purchasable")
+	_require(meta.talent_level(&"weapon_training") == 1, "Weapon Training should be purchasable")
+	_require(meta.talent_level(&"scavenger_instinct") == 1, "Scavenger Instinct should be purchasable")
+	_require(int(meta.profile_snapshot().get("talent_points")) == 16, "Talent purchases should spend one point each at level zero")
+	_require(hud.menu_currency_label.text.contains("Talent Points 16"), "Camp menu should refresh currencies after talent purchases")
+	main.reset_save_for_test()
+	_require(meta.talent_level(&"vital_core") == 0, "Reset Save should clear talents")
+	_require(int(meta.profile_snapshot().get("talent_points")) == 0, "Reset Save should clear talent points")
+	meta.profile["talent_points"] = 20
+	meta.save_profile()
+	main.purchase_talent_for_test(&"vital_core")
+	main.purchase_talent_for_test(&"reinforced_plating")
+	main.purchase_talent_for_test(&"weapon_training")
+	main.purchase_talent_for_test(&"scavenger_instinct")
 
 func _assert_equipment_detail_ui(main: Node) -> void:
 	var player = main.get_node("Player")
@@ -277,6 +326,9 @@ func _assert_elite_room_contains_iron_husk() -> void:
 	var main_scene := load("res://scenes/main/Main.tscn")
 	var main = main_scene.instantiate()
 	root.add_child(main)
+	await process_frame
+	main.configure_profile_path_for_test("user://smoke_elite_profile_v002.json", true)
+	main.start_run_for_test()
 	await process_frame
 	var run = main.get_node("DungeonRun")
 	run.current_floor = 4

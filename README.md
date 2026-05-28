@@ -13,6 +13,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Data-driven loot, armor, and enhancement foundations
 - LAN-ready session wrapper using Godot ENet for a later co-op pass
 - Boss-specific loot tables, skill profiles, and mechanic profiles
+- Main menu camp with permanent meta progression and JSON profile saving
 
 ## Architecture goals
 
@@ -34,7 +35,24 @@ Controls:
 - Interact: E
 - Equipment panel: `Equipment` button
 - Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
-- Exit room: walk into the portal after the room is clear
+- Exit room: press `E` at the portal after the room is clear
+
+## Meta progression
+
+Runs now award permanent profile resources after death or completion:
+
+- Gold
+- Souls
+- Talent Points
+
+The camp menu includes four permanent talents:
+
+- Vital Core
+- Reinforced Plating
+- Weapon Training
+- Scavenger Instinct
+
+Profile data is saved to `user://profile_v1.json`.
 
 ## Current room sequence
 

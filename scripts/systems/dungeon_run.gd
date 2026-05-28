@@ -4,7 +4,7 @@ extends Node
 signal room_started(floor: int, room_type: String)
 signal room_cleared(floor: int)
 signal run_completed
-signal enemy_defeated(enemy_definition: Resource)
+signal enemy_defeated(enemy: Node, enemy_definition: Resource)
 signal forge_station_activated
 
 @export var max_floor := 10
@@ -78,8 +78,6 @@ func advance_to_next_room() -> void:
 	_start_current_room()
 
 func end_run() -> void:
-	if not run_active:
-		return
 	run_active = false
 	exit_unlocked = false
 	_set_exit(false)
@@ -212,7 +210,7 @@ func _on_enemy_died(enemy: Node, definition: Resource) -> void:
 	if not run_active:
 		return
 	live_enemies.erase(enemy)
-	enemy_defeated.emit(definition)
+	enemy_defeated.emit(enemy, definition)
 	if definition != null and definition.has_method("is_boss") and definition.is_boss():
 		current_reward_source_definition = definition
 	if loot_service != null:

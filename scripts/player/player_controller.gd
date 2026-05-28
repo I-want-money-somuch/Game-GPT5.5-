@@ -32,6 +32,7 @@ var interact_key_was_pressed := false
 var affix_effect_service: Node
 var input_enabled := true
 var is_dead := false
+var meta_stat_modifiers := {}
 var rng := RandomNumberGenerator.new()
 
 @onready var armor_component: Node = $ArmorComponent
@@ -62,6 +63,7 @@ func initialize(loadout_class: Resource, weapon: Resource, projectile: PackedSce
 	input_enabled = true
 	is_dead = false
 	knockback_velocity = Vector2.ZERO
+	meta_stat_modifiers.clear()
 	_recalculate_stats(true)
 	var shape := _body_shape()
 	if shape != null:
@@ -147,6 +149,11 @@ func set_input_enabled(enabled: bool) -> void:
 	if not input_enabled:
 		velocity = Vector2.ZERO
 		knockback_velocity = Vector2.ZERO
+
+func set_meta_stat_modifiers(modifiers: Dictionary, reset_health := true) -> void:
+	meta_stat_modifiers = modifiers.duplicate(true)
+	_recalculate_stats(reset_health)
+	loadout_changed.emit(inventory, equipped)
 
 func attack_rate_for_weapon(weapon: Resource) -> float:
 	if weapon == null:
@@ -374,6 +381,9 @@ func _current_stats(weapon: Resource = null) -> Dictionary:
 
 	if class_definition != null and class_definition.base_stats != null:
 		class_definition.base_stats.apply_to_dictionary(stats)
+
+	for key in meta_stat_modifiers.keys():
+		stats[key] = float(stats.get(key, 0.0)) + float(meta_stat_modifiers[key])
 
 	for equipment in equipped.values():
 		if equipment is Resource and equipment.get("stat_modifiers") != null:

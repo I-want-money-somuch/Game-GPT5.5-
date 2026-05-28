@@ -1,7 +1,10 @@
 class_name HUD
 extends CanvasLayer
 
-signal retry_requested
+signal start_run_requested
+signal reset_save_requested
+signal talent_purchase_requested(talent_id: StringName)
+signal camp_requested
 
 @onready var health_label: Label = %HealthLabel
 @onready var armor_label: Label = %ArmorLabel
@@ -18,16 +21,35 @@ signal retry_requested
 @onready var run_end_title: Label = %RunEndTitle
 @onready var run_end_body: Label = %RunEndBody
 @onready var retry_button: Button = %RetryButton
+@onready var main_menu_overlay: Control = %MainMenuOverlay
+@onready var menu_currency_label: Label = %MenuCurrencyLabel
+@onready var menu_last_run_label: Label = %MenuLastRunLabel
+@onready var start_run_button: Button = %StartRunButton
+@onready var reset_save_button: Button = %ResetSaveButton
+@onready var talent_buttons := {
+	&"vital_core": %VitalCoreButton,
+	&"reinforced_plating": %ReinforcedPlatingButton,
+	&"weapon_training": %WeaponTrainingButton,
+	&"scavenger_instinct": %ScavengerInstinctButton,
+}
+
+var meta_progression_service: Node
 
 func _ready() -> void:
 	_apply_readable_ui($Root)
 	equipment_panel.visible = false
 	forge_panel.visible = false
 	run_end_overlay.visible = false
+	main_menu_overlay.visible = false
 	forge_button.disabled = true
 	equipment_button.pressed.connect(func() -> void: equipment_panel.visible = not equipment_panel.visible)
 	forge_button.pressed.connect(func() -> void: forge_panel.visible = not forge_panel.visible if not forge_button.disabled else false)
-	retry_button.pressed.connect(func() -> void: retry_requested.emit())
+	retry_button.pressed.connect(func() -> void: camp_requested.emit())
+	start_run_button.pressed.connect(func() -> void: start_run_requested.emit())
+	reset_save_button.pressed.connect(func() -> void: reset_save_requested.emit())
+	for talent_id in talent_buttons.keys():
+		var button: Button = talent_buttons[talent_id]
+		button.pressed.connect(_on_talent_button_pressed.bind(talent_id))
 	if equipment_panel.has_signal("item_selected"):
 		equipment_panel.item_selected.connect(func(item: Resource) -> void: forge_panel.set_selected_item(item))
 
@@ -45,6 +67,9 @@ func bind_player(player: Node) -> void:
 	_on_inventory_changed(player.inventory.size())
 	equipment_panel.bind_player(player)
 
+func _on_talent_button_pressed(talent_id: StringName) -> void:
+	talent_purchase_requested.emit(talent_id)
+
 func bind_run(run: Node) -> void:
 	run.room_started.connect(_on_room_started)
 	run.room_cleared.connect(func(floor: int) -> void: message_label.text = "Floor %d clear" % floor)
@@ -52,6 +77,12 @@ func bind_run(run: Node) -> void:
 
 func bind_services(player: Node, enhancement_service: Node, feedback_service: Node) -> void:
 	forge_panel.bind_services(player, enhancement_service, feedback_service)
+
+func bind_meta_progression(service: Node) -> void:
+	meta_progression_service = service
+	if meta_progression_service != null and meta_progression_service.has_signal("profile_changed"):
+		meta_progression_service.profile_changed.connect(func(_profile: Dictionary) -> void: refresh_meta_progression())
+	refresh_meta_progression()
 
 func set_forge_available(available: bool) -> void:
 	forge_button.disabled = not available
@@ -83,6 +114,7 @@ func _on_room_started(floor: int, room_type: String) -> void:
 	floor_label.text = "Floor %d/10" % floor
 	message_label.text = room_type.capitalize().replace("_", " ")
 	run_end_overlay.visible = false
+	main_menu_overlay.visible = false
 
 func _on_player_died() -> void:
 	message_label.text = "Run ended"
@@ -95,9 +127,69 @@ func _on_run_completed() -> void:
 func _show_run_end(title: String, body: String) -> void:
 	run_end_title.text = title
 	run_end_body.text = body
+	retry_button.text = "Back to Camp"
 	run_end_overlay.visible = true
+	main_menu_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
+
+func show_run_end_summary(title: String, stats: Dictionary, rewards: Dictionary) -> void:
+	var body := PackedStringArray()
+	body.append("Highest Floor: %d   Rooms Cleared: %d" % [int(stats.get("highest_floor", 1)), int(stats.get("rooms_cleared", 0))])
+	body.append("Kills: %d   Elites: %d   Mini Boss: %d   Final Boss: %d" % [int(stats.get("kills", 0)), int(stats.get("elites", 0)), int(stats.get("mini_boss", 0)), int(stats.get("final_boss", 0))])
+	body.append("")
+	body.append("Rewards")
+	body.append("Gold +%d   Souls +%d   Talent Points +%d" % [int(rewards.get("gold", 0)), int(rewards.get("souls", 0)), int(rewards.get("talent_points", 0))])
+	_show_run_end(title, "\n".join(body))
+
+func show_main_menu() -> void:
+	refresh_meta_progression()
+	main_menu_overlay.visible = true
+	run_end_overlay.visible = false
+	equipment_panel.visible = false
+	forge_panel.visible = false
+	message_label.text = "Camp"
+
+func hide_main_menu() -> void:
+	main_menu_overlay.visible = false
+
+func refresh_meta_progression() -> void:
+	if meta_progression_service == null:
+		menu_currency_label.text = "Gold 0   Souls 0   Talent Points 0"
+		menu_last_run_label.text = "No run recorded"
+		return
+	var profile: Dictionary = meta_progression_service.profile_snapshot()
+	menu_currency_label.text = "Gold %d   Souls %d   Talent Points %d" % [
+		int(profile.get("gold", 0)),
+		int(profile.get("souls", 0)),
+		int(profile.get("talent_points", 0)),
+	]
+	menu_last_run_label.text = _last_run_text(profile.get("last_run", {}))
+	for talent_id in talent_buttons.keys():
+		var button: Button = talent_buttons[talent_id]
+		var level: int = meta_progression_service.talent_level(talent_id)
+		var cost: int = meta_progression_service.talent_cost(talent_id)
+		button.text = "%s  Lv %d/%d\nCost %d TP - %s" % [
+			meta_progression_service.talent_display_name(talent_id),
+			level,
+			meta_progression_service.talent_max_level(talent_id),
+			cost,
+			meta_progression_service.talent_description(talent_id),
+		]
+		button.disabled = not meta_progression_service.can_purchase_talent(talent_id)
+
+func _last_run_text(last_run) -> String:
+	if not last_run is Dictionary or last_run.is_empty():
+		return "Last Run: none"
+	var stats: Dictionary = last_run.get("stats", {})
+	var rewards: Dictionary = last_run.get("rewards", {})
+	return "Last Run: Floor %d, Rooms %d, Gold +%d, Souls +%d, TP +%d" % [
+		int(stats.get("highest_floor", 1)),
+		int(stats.get("rooms_cleared", 0)),
+		int(rewards.get("gold", 0)),
+		int(rewards.get("souls", 0)),
+		int(rewards.get("talent_points", 0)),
+	]
 
 func _apply_readable_ui(node: Node) -> void:
 	for child in node.get_children():

@@ -18,6 +18,7 @@ Definitions should stay mostly immutable during a run. Runtime state such as cur
 - `DungeonRun` owns room pacing, floor count, and enemy spawning.
 - `LootService` owns drop rolls and pickup creation.
 - `EnhancementService` owns upgrade probabilities and failure outcomes.
+- `MetaProgressionService` owns permanent profile currency, talent levels, run settlement rewards, and `user://profile_v1.json` persistence.
 - `FeedbackService` owns camera shake, procedural one-shot audio, damage numbers, hit sparks, and death bursts.
 - `ArmorComponent` owns armor durability, but `CombatResolver` owns damage math.
 - Player and enemy scripts consume combat and data APIs, but should not become rule databases.
@@ -49,6 +50,10 @@ The current vertical slice is intentionally deterministic:
 ## Interaction flow
 
 The player owns a small interaction area that scans nodes in the `interactables` group. Interactable scenes expose `can_interact(player)`, `get_prompt_text()`, and `interact(player)`. HUD prompt text is driven by the player's current interactable, so new interactables can be added without custom HUD logic.
+
+## Meta progression flow
+
+The game starts in the HUD camp overlay. Starting a run applies permanent talent modifiers to the player and enemy drop chance, then starts the deterministic dungeon sequence. Death and final victory both settle the run once, award permanent profile resources, save the profile, and return the player to camp.
 
 ## MVP content target
 

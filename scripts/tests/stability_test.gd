@@ -271,6 +271,14 @@ func _assert_ten_room_stress() -> void:
 
 		if expected_floor == 10:
 			_require(bool(completed["value"]), "Stress should complete the run after final boss chest")
+			var meta = main.get_node("MetaProgressionService")
+			var profile_before: Dictionary = meta.profile_snapshot()
+			main._on_run_completed()
+			main.back_to_camp_for_test()
+			main.back_to_camp_for_test()
+			var profile_after: Dictionary = meta.profile_snapshot()
+			_require(int(profile_after.get("gold")) == int(profile_before.get("gold")), "Stress completion should not award gold twice")
+			_require(int(profile_after.get("talent_points")) == int(profile_before.get("talent_points")), "Stress completion should not award talent points twice")
 			break
 
 		_require(run.exit_unlocked, "Stress floor %d should unlock exit after rewards" % expected_floor)
@@ -354,6 +362,9 @@ func _instantiate_main() -> Node:
 	_require(main_scene != null, "Main scene should load")
 	var main = main_scene.instantiate()
 	root.add_child(main)
+	await process_frame
+	main.configure_profile_path_for_test("user://stability_profile_v002.json", true)
+	main.start_run_for_test()
 	await process_frame
 	return main
 

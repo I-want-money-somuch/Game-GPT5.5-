@@ -5,6 +5,7 @@ extends Node
 @export var pickup_scene: PackedScene
 
 var pickup_parent: Node
+var enemy_drop_chance_bonus := 0.0
 var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -24,7 +25,7 @@ func drop_for_enemy(enemy_definition: Resource, at_position: Vector2, floor: int
 	var attempts := 1
 
 	for index in range(attempts):
-		var item: Resource = loot_table.roll(rng, floor)
+		var item: Resource = loot_table.roll(rng, floor, enemy_drop_chance_bonus)
 		if item == null:
 			continue
 		var pickup := pickup_scene.instantiate()

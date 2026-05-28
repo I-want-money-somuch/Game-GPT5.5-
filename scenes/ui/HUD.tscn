@@ -278,10 +278,10 @@ color = Color(0.02, 0.025, 0.03, 0.72)
 
 [node name="Panel" type="PanelContainer" parent="Root/RunEndOverlay"]
 layout_mode = 0
-offset_left = 282.0
-offset_top = 172.0
-offset_right = 678.0
-offset_bottom = 368.0
+offset_left = 240.0
+offset_top = 126.0
+offset_right = 720.0
+offset_bottom = 414.0
 
 [node name="MarginContainer" type="MarginContainer" parent="Root/RunEndOverlay/Panel"]
 layout_mode = 2
@@ -303,6 +303,7 @@ horizontal_alignment = 1
 
 [node name="RunEndBody" type="Label" parent="Root/RunEndOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Your build collapsed in the depths."
@@ -315,3 +316,108 @@ custom_minimum_size = Vector2(0, 42)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Restart Run"
+
+[node name="MainMenuOverlay" type="Control" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Shade" type="ColorRect" parent="Root/MainMenuOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.018, 0.022, 0.026, 0.86)
+
+[node name="Panel" type="PanelContainer" parent="Root/MainMenuOverlay"]
+layout_mode = 0
+offset_left = 178.0
+offset_top = 34.0
+offset_right = 782.0
+offset_bottom = 512.0
+
+[node name="MarginContainer" type="MarginContainer" parent="Root/MainMenuOverlay/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/MainMenuOverlay/Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Forgebound Camp"
+horizontal_alignment = 1
+
+[node name="MenuCurrencyLabel" type="Label" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Gold 0   Souls 0   Talent Points 0"
+horizontal_alignment = 1
+
+[node name="MenuLastRunLabel" type="Label" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Last Run: none"
+horizontal_alignment = 1
+
+[node name="TalentTitle" type="Label" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Permanent Talents"
+
+[node name="VitalCoreButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Vital Core"
+
+[node name="ReinforcedPlatingButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Reinforced Plating"
+
+[node name="WeaponTrainingButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Weapon Training"
+
+[node name="ScavengerInstinctButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Scavenger Instinct"
+
+[node name="StartRunButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Start Run"
+
+[node name="ResetSaveButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 38)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Reset Save"
