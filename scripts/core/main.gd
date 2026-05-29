@@ -10,6 +10,8 @@ const FORGE_STATION_SCENE := preload("res://scenes/interactables/ForgeStation.ts
 const EVENT_STATION_SCENE := preload("res://scenes/interactables/EventStation.tscn")
 const AFFIX_EFFECT_SERVICE_SCRIPT := preload("res://scripts/systems/affix_effect_service.gd")
 const META_PROGRESSION_SERVICE_SCRIPT := preload("res://scripts/systems/meta_progression_service.gd")
+const SETTINGS_SERVICE_SCRIPT := preload("res://scripts/systems/settings_service.gd")
+const LOCALIZATION_SERVICE_SCRIPT := preload("res://scripts/systems/localization_service.gd")
 const EVENT_SERVICE_SCRIPT := preload("res://scripts/systems/event_service.gd")
 const LOOT_TABLE := preload("res://resources/loot_tables/mvp_loot_table.tres")
 const ENHANCEMENT_CURVE := preload("res://resources/progression/basic_enhancement_curve.tres")
@@ -48,10 +50,13 @@ const BOSS := preload("res://resources/enemies/depths_warden.tres")
 @onready var feedback_service: Node = $FeedbackService
 var affix_effect_service: Node
 var meta_progression_service: Node
+var settings_service: Node
+var localization_service: Node
 var event_service: Node
 var run_stats := {}
 var current_run_active := false
 var run_settled := false
+var settings_pause_active := false
 @onready var enemy_parent: Node2D = $Enemies
 @onready var pickup_parent: Node2D = $Pickups
 @onready var interactable_parent: Node2D = $Interactables
@@ -86,6 +91,15 @@ var run_settled := false
 ]
 
 func _ready() -> void:
+	settings_service = SETTINGS_SERVICE_SCRIPT.new()
+	settings_service.name = "SettingsService"
+	add_child(settings_service)
+	localization_service = LOCALIZATION_SERVICE_SCRIPT.new()
+	localization_service.name = "LocalizationService"
+	add_child(localization_service)
+	if localization_service.has_method("bind_settings"):
+		localization_service.bind_settings(settings_service)
+
 	player.initialize(PLAYER_CLASS, STARTER_WEAPON, PROJECTILE_SCENE)
 	player.set_input_enabled(false)
 	affix_effect_service = AFFIX_EFFECT_SERVICE_SCRIPT.new()
@@ -101,6 +115,10 @@ func _ready() -> void:
 	loot_service.configure(LOOT_TABLE, PICKUP_SCENE, pickup_parent)
 	enhancement_service.curve = ENHANCEMENT_CURVE
 	feedback_service.configure($Player/Camera2D, effects_parent)
+	if arena.has_method("set_localization_service"):
+		arena.set_localization_service(localization_service)
+	if exit_portal.has_method("set_localization_service"):
+		exit_portal.set_localization_service(localization_service)
 	dungeon_run.configure({
 		"player": player,
 		"enemy_scene": ENEMY_SCENE,
@@ -124,6 +142,7 @@ func _ready() -> void:
 		"exit_portal": exit_portal,
 		"room_sequence": room_sequence,
 	})
+	hud.bind_localization(localization_service)
 	hud.bind_player(player)
 	hud.bind_run(dungeon_run)
 	hud.bind_services(player, enhancement_service, feedback_service)
@@ -138,6 +157,11 @@ func _ready() -> void:
 	hud.reset_save_requested.connect(_on_reset_save_requested)
 	hud.talent_purchase_requested.connect(_on_talent_purchase_requested)
 	hud.camp_requested.connect(_on_camp_requested)
+	hud.settings_requested.connect(_on_settings_requested)
+	hud.settings_back_requested.connect(_on_settings_back_requested)
+	hud.language_selected.connect(_on_language_selected)
+	if localization_service.has_signal("language_changed"):
+		localization_service.language_changed.connect(_on_language_changed)
 	hud.show_main_menu()
 
 func _on_room_started(_floor: int, _room_type: String) -> void:
@@ -169,6 +193,7 @@ func _on_forge_station_activated() -> void:
 		hud.open_forge_panel()
 
 func _on_player_died() -> void:
+	_close_settings_overlay()
 	_settle_current_run(false)
 	if dungeon_run.has_method("end_run"):
 		dungeon_run.end_run()
@@ -176,6 +201,7 @@ func _on_player_died() -> void:
 		player.clear_run_stat_modifiers(false)
 
 func _on_run_completed() -> void:
+	_close_settings_overlay()
 	if player.has_method("set_input_enabled"):
 		player.set_input_enabled(false)
 	_settle_current_run(true)
@@ -196,6 +222,7 @@ func _on_talent_purchase_requested(talent_id: StringName) -> void:
 	hud.refresh_meta_progression()
 
 func _on_camp_requested() -> void:
+	_close_settings_overlay()
 	current_run_active = false
 	run_settled = false
 	dungeon_run.end_run()
@@ -205,6 +232,7 @@ func _on_camp_requested() -> void:
 	hud.show_main_menu()
 
 func start_run_from_camp() -> void:
+	_close_settings_overlay()
 	current_run_active = true
 	run_settled = false
 	run_stats = _new_run_stats()
@@ -223,6 +251,23 @@ func configure_profile_path_for_test(path: String, reset := true) -> void:
 	meta_progression_service.set_profile_path(path, reset)
 	hud.refresh_meta_progression()
 
+func configure_settings_path_for_test(path: String, reset := true) -> void:
+	settings_service.set_settings_path(path, reset)
+	if hud.has_method("_refresh_all_text"):
+		hud._refresh_all_text()
+
+func select_language_for_test(language: String) -> void:
+	_on_language_selected(language)
+
+func open_settings_for_test() -> void:
+	_on_settings_requested()
+
+func close_settings_for_test() -> void:
+	_on_settings_back_requested()
+
+func is_settings_pause_active_for_test() -> bool:
+	return settings_pause_active
+
 func purchase_talent_for_test(talent_id: StringName) -> void:
 	_on_talent_purchase_requested(talent_id)
 
@@ -240,9 +285,45 @@ func _settle_current_run(completed: bool) -> Dictionary:
 	run_stats["completed"] = completed
 	run_stats["highest_floor"] = maxi(int(run_stats.get("highest_floor", 1)), dungeon_run.current_floor)
 	var rewards: Dictionary = meta_progression_service.award_run(run_stats)
-	var title := "Depths Cleared" if completed else "Run Ended"
+	var title := "run.end.depths_cleared" if completed else "run.end.run_ended"
 	hud.show_run_end_summary(title, run_stats, rewards)
 	return rewards
+
+func _on_settings_requested() -> void:
+	hud.show_settings()
+	if current_run_active and not get_tree().paused:
+		settings_pause_active = true
+		get_tree().paused = true
+
+func _on_settings_back_requested() -> void:
+	_close_settings_overlay()
+
+func _on_language_selected(language: String) -> void:
+	if localization_service != null and localization_service.has_method("set_language"):
+		localization_service.set_language(language)
+
+func _on_language_changed(_language: String) -> void:
+	if arena.has_method("apply_room") and dungeon_run.current_room_definition != null:
+		arena.apply_room(dungeon_run.current_room_definition)
+	if exit_portal.has_method("refresh_localization"):
+		exit_portal.refresh_localization()
+	for child in interactable_parent.get_children():
+		if child.has_method("refresh_localization"):
+			child.refresh_localization()
+	for child in pickup_parent.get_children():
+		if child.has_method("refresh_localization"):
+			child.refresh_localization()
+
+func _close_settings_overlay() -> void:
+	if hud != null and hud.has_method("hide_settings"):
+		hud.hide_settings()
+	if settings_pause_active:
+		settings_pause_active = false
+		get_tree().paused = false
+
+func _exit_tree() -> void:
+	if get_tree() != null and settings_pause_active:
+		get_tree().paused = false
 
 func _new_run_stats() -> Dictionary:
 	return {

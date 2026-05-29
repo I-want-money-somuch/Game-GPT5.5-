@@ -109,6 +109,16 @@ offset_bottom = 144.0
 theme_override_font_sizes/font_size = 18
 text = "Forge"
 
+[node name="SettingsButton" type="Button" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 284.0
+offset_top = 106.0
+offset_right = 420.0
+offset_bottom = 144.0
+theme_override_font_sizes/font_size = 18
+text = "Settings"
+
 [node name="EquipmentPanel" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 0
@@ -450,9 +460,80 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Start Run"
 
+[node name="MenuSettingsButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Settings"
+
 [node name="ResetSaveButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Reset Save"
+
+[node name="SettingsOverlay" type="Control" parent="Root"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="Shade" type="ColorRect" parent="Root/SettingsOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.02, 0.025, 0.03, 0.72)
+
+[node name="Panel" type="PanelContainer" parent="Root/SettingsOverlay"]
+layout_mode = 0
+offset_left = 288.0
+offset_top = 146.0
+offset_right = 672.0
+offset_bottom = 394.0
+
+[node name="MarginContainer" type="MarginContainer" parent="Root/SettingsOverlay/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 22
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 22
+theme_override_constants/margin_bottom = 20
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Root/SettingsOverlay/Panel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="SettingsTitle" type="Label" parent="Root/SettingsOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="LanguageLabel" type="Label" parent="Root/SettingsOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Language"
+
+[node name="LanguageOption" type="OptionButton" parent="Root/SettingsOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+
+[node name="SettingsBackButton" type="Button" parent="Root/SettingsOverlay/Panel/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Back"

@@ -7,6 +7,7 @@ var player
 var enhancement_service
 var feedback_service
 var selected_item: Resource
+var localization_service: Node
 
 @onready var selected_label: Label = %ForgeSelectedLabel
 @onready var level_label: Label = %ForgeLevelLabel
@@ -26,6 +27,13 @@ func bind_services(target_player: Node, target_enhancement_service: Node, target
 		player.loadout_changed.connect(func(_inventory: Array, _equipped: Dictionary) -> void: _refresh())
 	_refresh()
 
+func set_localization_service(service: Node) -> void:
+	localization_service = service
+	_refresh()
+
+func refresh_for_language() -> void:
+	_refresh()
+
 func set_selected_item(item: Resource) -> void:
 	selected_item = item
 	_refresh()
@@ -43,37 +51,56 @@ func _on_forge_pressed() -> void:
 
 func _refresh() -> void:
 	if selected_item == null or player == null:
-		selected_label.text = "Selected: -"
-		level_label.text = "Level: -"
-		chance_label.text = "Chance: -"
-		outcome_label.text = "Outcome: -"
+		selected_label.text = _t("forge.selected_empty", "Selected: -")
+		level_label.text = _t("forge.level_empty", "Level: -")
+		chance_label.text = _t("forge.chance_empty", "Chance: -")
+		outcome_label.text = _t("forge.outcome_empty", "Outcome: -")
 		forge_button.disabled = true
+		forge_button.text = _t("forge.enhance", "Enhance")
 		return
 
 	var level: int = player.get_enhancement_level(selected_item)
-	selected_label.text = "Selected: %s" % selected_item.display_name
-	level_label.text = "Level: +%d" % level
+	selected_label.text = _lf("forge.selected", [_resource_name(selected_item)], "Selected: %s")
+	level_label.text = _lf("forge.level", [level], "Level: +%d")
 	forge_button.disabled = level < 0
 
 	if enhancement_service == null or enhancement_service.curve == null:
-		chance_label.text = "Chance: -"
-		outcome_label.text = "Outcome: -"
+		chance_label.text = _t("forge.chance_empty", "Chance: -")
+		outcome_label.text = _t("forge.outcome_empty", "Outcome: -")
 		return
 
 	var chance: float = enhancement_service.curve.chance_for_next_level(level)
 	var failure: int = enhancement_service.curve.failure_for_next_level(level)
-	chance_label.text = "Chance: %d%%" % roundi(chance * 100.0)
-	outcome_label.text = "Fail: %s" % _failure_name(failure)
+	chance_label.text = _lf("forge.chance", [roundi(chance * 100.0)], "Chance: %d%%")
+	outcome_label.text = _lf("forge.fail", [_failure_name(failure)], "Fail: %s")
+	forge_button.text = _t("forge.enhance", "Enhance")
 
 func _failure_name(value: int) -> String:
 	match value:
 		EnhancementCurveScript.FailureOutcome.MATERIAL_LOSS:
-			return "Materials"
+			return _t("forge.failure.materials", "Materials")
 		EnhancementCurveScript.FailureOutcome.DOWNGRADE:
-			return "Downgrade"
+			return _t("forge.failure.downgrade", "Downgrade")
 		EnhancementCurveScript.FailureOutcome.DURABILITY_LOSS:
-			return "Durability"
+			return _t("forge.failure.durability", "Durability")
 		EnhancementCurveScript.FailureOutcome.BREAK_ITEM:
-			return "Break"
+			return _t("forge.failure.break", "Break")
 		_:
 			return "-"
+
+func _t(key: String, fallback := "") -> String:
+	if localization_service != null and localization_service.has_method("text"):
+		return localization_service.text(key, fallback)
+	return fallback if not fallback.is_empty() else key
+
+func _lf(key: String, args: Array = [], fallback := "") -> String:
+	if localization_service != null and localization_service.has_method("format_text"):
+		return localization_service.format_text(key, args, fallback)
+	return fallback % args if not fallback.is_empty() else key % args
+
+func _resource_name(resource: Resource) -> String:
+	if localization_service != null and localization_service.has_method("resource_name"):
+		return localization_service.resource_name(resource)
+	if resource == null:
+		return ""
+	return str(resource.get("display_name"))

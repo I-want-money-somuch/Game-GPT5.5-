@@ -16,6 +16,7 @@ func _run() -> void:
 	root.add_child(main)
 	await process_frame
 	_assert_pixel_art_assets()
+	main.configure_settings_path_for_test("user://smoke_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://smoke_profile_v002.json", true)
 	await process_frame
 	var run = main.get_node("DungeonRun")
@@ -23,6 +24,9 @@ func _run() -> void:
 	_require(main.get_node("HUD").main_menu_overlay.visible, "Main scene should start at the camp menu")
 	_require(not run.run_active, "Dungeon run should not start before Start Run")
 	_require(not player_main.input_enabled, "Player input should be disabled at camp")
+	await _assert_settings_menu_localization(main)
+	_assert_localization_coverage(main.get_node("LocalizationService"))
+	_assert_player_mouse_facing(player_main)
 	_assert_meta_menu_and_talents(main)
 	main.start_run_for_test()
 	await process_frame
@@ -38,6 +42,7 @@ func _run() -> void:
 	_require(meta_damage_packet.amount > starter_weapon_for_meta.base_damage * 1.04, "Weapon Training should increase outgoing damage")
 	_assert_equipment_detail_ui(main)
 	await _assert_pickup_preview_and_interaction(main)
+	await _assert_runtime_localization(main)
 	await _assert_readable_ui_thresholds(main)
 	_require(main.get_node("ExitPortal").visible == false, "Exit should start locked in combat rooms")
 	for enemy in run.live_enemies:
@@ -194,6 +199,7 @@ func _assert_player_death_state() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_settings_path_for_test("user://smoke_death_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://smoke_death_profile_v002.json", true)
 	main.start_run_for_test()
 	await process_frame
@@ -289,6 +295,7 @@ func _start_event_room_fixture(event_definition: Resource) -> Node:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_settings_path_for_test("user://smoke_event_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://smoke_event_profile_v003.json", true)
 	main.start_run_for_test()
 	await process_frame
@@ -429,6 +436,123 @@ func _require(condition: bool, message: String) -> void:
 	push_error(message)
 	quit(1)
 
+func _assert_settings_menu_localization(main: Node) -> void:
+	var hud = main.get_node("HUD")
+	var localization = main.get_node("LocalizationService")
+	_require(localization.language() == "en", "Default settings language should be English")
+	main.open_settings_for_test()
+	await process_frame
+	_require(hud.is_settings_visible_for_test(), "Settings overlay should open from camp")
+	main.select_language_for_test("zh_CN")
+	await process_frame
+	_require(localization.language() == "zh_CN", "Settings should switch to Chinese immediately")
+	_require(hud.get_language_option_code_for_test() == "zh_CN", "Language option should select zh_CN")
+	_require(hud.start_run_button.text.contains("开始"), "Camp Start Run button should localize to Chinese")
+	_require(hud.menu_currency_label.text.contains("金币"), "Camp currencies should localize to Chinese")
+	_require(hud.talent_buttons[&"vital_core"].text.contains("生命核心"), "Talent button should localize to Chinese")
+	main.select_language_for_test("en")
+	await process_frame
+	_require(localization.language() == "en", "Settings should switch back to English")
+	_require(hud.start_run_button.text == "Start Run", "Camp Start Run button should return to English")
+	main.close_settings_for_test()
+	await process_frame
+	_require(not hud.is_settings_visible_for_test(), "Settings overlay should close")
+	await _assert_settings_persistence(main)
+
+func _assert_settings_persistence(main: Node) -> void:
+	var settings_path := "user://smoke_settings_persist_v006.json"
+	main.configure_settings_path_for_test(settings_path, true)
+	main.select_language_for_test("zh_CN")
+	await process_frame
+	var main_scene := load("res://scenes/main/Main.tscn")
+	var clone = main_scene.instantiate()
+	root.add_child(clone)
+	await process_frame
+	clone.configure_settings_path_for_test(settings_path, false)
+	await process_frame
+	_require(clone.get_node("LocalizationService").language() == "zh_CN", "Settings language should persist after re-instancing Main")
+	clone.queue_free()
+	await process_frame
+	main.configure_settings_path_for_test("user://smoke_settings_v006.json", true)
+	await process_frame
+
+func _assert_localization_coverage(localization: Node) -> void:
+	var resources_with_desc := [
+		"res://resources/classes/vanguard.tres",
+		"res://resources/weapons/ember_snap.tres",
+		"res://resources/weapons/frostline_staff.tres",
+		"res://resources/weapons/volt_spear.tres",
+		"res://resources/weapons/boss/warden_rift_staff.tres",
+		"res://resources/equipment/ashguard_helm.tres",
+		"res://resources/equipment/rivet_chestplate.tres",
+		"res://resources/equipment/quickspark_gloves.tres",
+		"res://resources/equipment/trailblazer_boots.tres",
+		"res://resources/equipment/lumen_ring.tres",
+		"res://resources/equipment/boss/cinderplate_core.tres",
+		"res://resources/equipment/boss/bulwark_ember_ring.tres",
+		"res://resources/equipment/boss/abyssal_guard_helm.tres",
+		"res://resources/affixes/armor_piercing.tres",
+		"res://resources/affixes/ember_burst.tres",
+		"res://resources/affixes/frostbite.tres",
+		"res://resources/affixes/storm_chain.tres",
+		"res://resources/enemies/ashling.tres",
+		"res://resources/enemies/glassmite.tres",
+		"res://resources/enemies/iron_husk.tres",
+		"res://resources/enemies/cinder_bulwark.tres",
+		"res://resources/enemies/depths_warden.tres",
+		"res://resources/elite_affixes/flaming.tres",
+		"res://resources/elite_affixes/swift.tres",
+		"res://resources/elite_affixes/juggernaut.tres",
+		"res://resources/elite_affixes/phasing.tres",
+		"res://resources/elite_affixes/vampiric.tres",
+		"res://resources/events/ember_pact.tres",
+		"res://resources/events/iron_oath.tres",
+		"res://resources/events/trial_altar.tres",
+	]
+	var room_resources := [
+		"res://resources/dungeon/combat_room.tres",
+		"res://resources/dungeon/elite_room.tres",
+		"res://resources/dungeon/treasure_room.tres",
+		"res://resources/dungeon/forge_room.tres",
+		"res://resources/dungeon/event_room.tres",
+		"res://resources/dungeon/mini_boss_room.tres",
+		"res://resources/dungeon/boss_room.tres",
+	]
+	for path in resources_with_desc:
+		var resource := load(path)
+		_require(resource != null, "%s should load for localization coverage" % path)
+		for language in ["en", "zh_CN"]:
+			_require(localization.has_resource_translation(resource, "name", language), "%s should have %s name localization" % [path, language])
+			_require(localization.has_resource_translation(resource, "desc", language), "%s should have %s description localization" % [path, language])
+		if resource.has_method("get_prompt"):
+			for language in ["en", "zh_CN"]:
+				_require(localization.has_resource_translation(resource, "prompt", language), "%s should have %s prompt localization" % [path, language])
+	for path in room_resources:
+		var resource := load(path)
+		_require(resource != null, "%s should load for room localization coverage" % path)
+		for language in ["en", "zh_CN"]:
+			_require(localization.has_resource_translation(resource, "name", language), "%s should have %s room name localization" % [path, language])
+	for key in [
+		"talent.vital_core.name",
+		"talent.vital_core.desc",
+		"talent.reinforced_plating.name",
+		"talent.reinforced_plating.desc",
+		"talent.weapon_training.name",
+		"talent.weapon_training.desc",
+		"talent.scavenger_instinct.name",
+		"talent.scavenger_instinct.desc",
+	]:
+		_require(localization.has_text(key, "en") and localization.has_text(key, "zh_CN"), "%s should have English and Chinese text" % key)
+
+func _assert_player_mouse_facing(player: Node2D) -> void:
+	var target := player.global_position + Vector2(180.0, 0.0)
+	player.face_position_for_test(target, 1.0)
+	var expected: float = player.target_facing_rotation_for_test(target)
+	_require(_angle_distance(player.body_rotation_for_test(), expected) < 0.02, "Player BodySprite should rotate toward a target point")
+
+func _angle_distance(a: float, b: float) -> float:
+	return absf(wrapf(a - b, -PI, PI))
+
 func _assert_meta_menu_and_talents(main: Node) -> void:
 	var meta = main.get_node("MetaProgressionService")
 	var hud = main.get_node("HUD")
@@ -528,6 +652,37 @@ func _assert_pickup_preview_and_interaction(main: Node) -> void:
 	await process_frame
 	_require(player.equipped.has(0), "Equipment pickup interaction should equip the item")
 
+func _assert_runtime_localization(main: Node) -> void:
+	var hud = main.get_node("HUD")
+	var player = main.get_node("Player")
+	var pickups = main.get_node("Pickups")
+	var pickup_scene := load("res://scenes/items/Pickup.tscn")
+	main.select_language_for_test("zh_CN")
+	await process_frame
+	_require(hud.health_label.text.contains("生命"), "HUD health label should localize in-run")
+	_require(hud.armor_label.text.contains("护甲"), "HUD armor label should localize in-run")
+	_require(hud.equipment_button.text == "装备", "Equipment button should localize in-run")
+	_require(hud.settings_button.text == "设置", "Settings button should localize in-run")
+	hud.equipment_panel.select_item_for_test(player.active_weapon)
+	_require(hud.equipment_panel.get_detail_text_for_test().contains("伏特长矛"), "Equipment panel item details should localize")
+	hud.forge_panel.set_selected_item(load("res://resources/weapons/ember_snap.tres"))
+	_require(hud.forge_panel.selected_label.text.contains("已选"), "Forge panel labels should localize")
+
+	var pickup = pickup_scene.instantiate()
+	pickup.item_definition = load("res://resources/weapons/volt_spear.tres")
+	pickup.global_position = player.global_position
+	pickups.add_child(pickup)
+	await process_frame
+	player._on_interaction_area_entered(pickup)
+	await process_frame
+	_require(hud.interaction_label.text.contains("拾取 伏特长矛"), "Pickup interaction prompt should localize")
+	_require(hud.get_pickup_preview_text_for_test().contains("拾取：伏特长矛"), "Pickup preview should localize")
+	player.force_interact_with(pickup)
+	await process_frame
+	main.select_language_for_test("en")
+	await process_frame
+	_require(hud.health_label.text.contains("HP"), "HUD health label should return to English")
+
 func _assert_readable_ui_thresholds(main: Node) -> void:
 	var hud = main.get_node("HUD")
 	_require(hud.health_label.get_theme_font_size("font_size") >= 20, "HUD labels should use readable font sizes")
@@ -607,6 +762,7 @@ func _assert_elite_room_contains_iron_husk() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_settings_path_for_test("user://smoke_elite_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://smoke_elite_profile_v002.json", true)
 	main.start_run_for_test()
 	await process_frame

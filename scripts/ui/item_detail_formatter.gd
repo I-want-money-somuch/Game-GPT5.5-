@@ -5,101 +5,105 @@ const RARITIES := ["Common", "Rare", "Epic", "Legendary", "Mythic"]
 const WEAPON_FAMILIES := ["Handgun", "Rifle", "Shotgun", "Sniper", "Staff", "Bow", "Spear", "Greatsword", "Dual Blade", "Thrown", "Summon"]
 const WEAPON_ELEMENTS := ["Physical", "Fire", "Ice", "Poison", "Lightning", "Arcane"]
 const EQUIPMENT_SLOTS := ["Helmet", "Chest", "Gloves", "Boots", "Trinket", "Ring"]
+const RARITY_KEYS := ["rarity.common", "rarity.rare", "rarity.epic", "rarity.legendary", "rarity.mythic"]
+const WEAPON_FAMILY_KEYS := ["weapon_family.handgun", "weapon_family.rifle", "weapon_family.shotgun", "weapon_family.sniper", "weapon_family.staff", "weapon_family.bow", "weapon_family.spear", "weapon_family.greatsword", "weapon_family.dual_blade", "weapon_family.thrown", "weapon_family.summon"]
+const WEAPON_ELEMENT_KEYS := ["element.physical", "element.fire", "element.ice", "element.poison", "element.lightning", "element.arcane"]
+const EQUIPMENT_SLOT_KEYS := ["slot.helmet", "slot.chest", "slot.gloves", "slot.boots", "slot.trinket", "slot.ring"]
 
 const STAT_LINES := [
-	["max_health", "Max Health", "flat"],
-	["armor", "Armor", "flat"],
-	["armor_durability", "Armor Durability", "flat"],
-	["armor_damage_reduction", "Armor DR", "percent"],
-	["damage_multiplier", "Damage", "percent"],
-	["crit_chance", "Crit Chance", "percent"],
-	["crit_damage", "Crit Damage", "percent"],
-	["armor_pierce", "Armor Pierce", "percent"],
-	["attack_speed", "Attack Speed", "decimal"],
-	["move_speed", "Move Speed", "flat"],
-	["dodge_chance", "Dodge", "percent"],
-	["skill_cooldown_reduction", "Skill Cooldown", "percent"],
-	["energy_recovery", "Energy Recovery", "decimal"],
+	["max_health", "Max Health", "flat", "stat.max_health"],
+	["armor", "Armor", "flat", "stat.armor"],
+	["armor_durability", "Armor Durability", "flat", "stat.armor_durability"],
+	["armor_damage_reduction", "Armor DR", "percent", "stat.armor_damage_reduction"],
+	["damage_multiplier", "Damage", "percent", "stat.damage_multiplier"],
+	["crit_chance", "Crit Chance", "percent", "stat.crit_chance"],
+	["crit_damage", "Crit Damage", "percent", "stat.crit_damage"],
+	["armor_pierce", "Armor Pierce", "percent", "stat.armor_pierce"],
+	["attack_speed", "Attack Speed", "decimal", "stat.attack_speed"],
+	["move_speed", "Move Speed", "flat", "stat.move_speed"],
+	["dodge_chance", "Dodge", "percent", "stat.dodge_chance"],
+	["skill_cooldown_reduction", "Skill Cooldown", "percent", "stat.skill_cooldown_reduction"],
+	["energy_recovery", "Energy Recovery", "decimal", "stat.energy_recovery"],
 ]
 
-static func format_item(item: Resource, player: Node = null) -> String:
+static func format_item(item: Resource, player: Node = null, localization_service: Node = null) -> String:
 	if item == null:
-		return "No item selected.\nPick up or select an item to inspect its build value."
+		return _t(localization_service, "item.no_selected", "No item selected.\nPick up or select an item to inspect its build value.")
 	if item.has_method("create_damage_packet"):
-		return _format_weapon(item, player)
+		return _format_weapon(item, player, localization_service)
 	if item.has_method("get_slot_name"):
-		return _format_equipment(item, player)
-	return "%s\n%s" % [str(item.get("display_name")), str(item.get("description"))]
+		return _format_equipment(item, player, localization_service)
+	return "%s\n%s" % [_name(item, localization_service), _description(item, localization_service)]
 
-static func format_pickup_comparison(item: Resource, player: Node = null) -> String:
+static func format_pickup_comparison(item: Resource, player: Node = null, localization_service: Node = null) -> String:
 	if item == null:
 		return ""
 	if item.has_method("create_damage_packet"):
-		return _format_weapon_pickup_comparison(item, player)
+		return _format_weapon_pickup_comparison(item, player, localization_service)
 	if item.has_method("get_slot_name"):
-		return _format_equipment_pickup_comparison(item, player)
-	return format_item(item, player)
+		return _format_equipment_pickup_comparison(item, player, localization_service)
+	return format_item(item, player, localization_service)
 
-static func _format_weapon(item: Resource, player: Node) -> String:
+static func _format_weapon(item: Resource, player: Node, localization_service: Node) -> String:
 	var lines := PackedStringArray()
-	lines.append("%s  +%d" % [_name(item), _enhancement_level(item, player)])
-	lines.append("%s %s %s" % [_rarity_name(int(item.get("rarity"))), _weapon_family_name(int(item.get("family"))), _weapon_element_name(int(item.get("element")))])
-	_append_if_not_empty(lines, str(item.get("description")))
+	lines.append("%s  +%d" % [_name(item, localization_service), _enhancement_level(item, player)])
+	lines.append("%s %s %s" % [_rarity_name(int(item.get("rarity")), localization_service), _weapon_family_name(int(item.get("family")), localization_service), _weapon_element_name(int(item.get("element")), localization_service)])
+	_append_if_not_empty(lines, _description(item, localization_service))
 	lines.append("")
-	lines.append("Damage: %s" % _number(float(item.get("base_damage"))))
-	lines.append("Attack Speed: %s/s" % _decimal(float(item.get("attack_rate"))))
-	lines.append("Crit: %s at x%s" % [_percent(float(item.get("crit_chance"))), _decimal(float(item.get("crit_damage")))])
-	lines.append("Armor Pierce: %s" % _percent(float(item.get("armor_pierce"))))
-	lines.append("Pierce: %d" % int(item.get("pierce")))
-	lines.append("Durability: %s" % _number(float(item.get("durability"))))
-	_append_affixes(lines, item.get("affixes"))
+	lines.append(_lf(localization_service, "item.damage_line", [_number(float(item.get("base_damage")))], "Damage: %s"))
+	lines.append(_lf(localization_service, "item.attack_speed_line", [_decimal(float(item.get("attack_rate")))], "Attack Speed: %s/s"))
+	lines.append(_lf(localization_service, "item.crit_line", [_percent(float(item.get("crit_chance"))), _decimal(float(item.get("crit_damage")))], "Crit: %s at x%s"))
+	lines.append(_lf(localization_service, "item.armor_pierce_line", [_percent(float(item.get("armor_pierce")))], "Armor Pierce: %s"))
+	lines.append(_lf(localization_service, "item.pierce_line", [int(item.get("pierce"))], "Pierce: %d"))
+	lines.append(_lf(localization_service, "item.durability_line", [_number(float(item.get("durability")))], "Durability: %s"))
+	_append_affixes(lines, item.get("affixes"), localization_service)
 	return "\n".join(lines)
 
-static func _format_weapon_pickup_comparison(item: Resource, player: Node) -> String:
+static func _format_weapon_pickup_comparison(item: Resource, player: Node, localization_service: Node) -> String:
 	var current: Resource = player.active_weapon if player != null and player.get("active_weapon") != null else null
 	var lines := PackedStringArray()
-	lines.append("Pickup: %s" % _name(item))
-	lines.append("%s %s %s" % [_rarity_name(int(item.get("rarity"))), _weapon_family_name(int(item.get("family"))), _weapon_element_name(int(item.get("element")))])
-	lines.append("Current: %s" % (_name(current) if current != null else "None"))
+	lines.append(_lf(localization_service, "item.pickup", [_name(item, localization_service)], "Pickup: %s"))
+	lines.append("%s %s %s" % [_rarity_name(int(item.get("rarity")), localization_service), _weapon_family_name(int(item.get("family")), localization_service), _weapon_element_name(int(item.get("element")), localization_service)])
+	lines.append(_lf(localization_service, "item.current", [_name(current, localization_service) if current != null else _t(localization_service, "item.none", "None")], "Current: %s"))
 	lines.append("")
-	lines.append("Compare")
-	lines.append(_compare_line("Damage", float(item.get("base_damage")), _resource_float(current, "base_damage"), "flat"))
-	lines.append(_compare_line("Attack Speed", _weapon_attack_rate(item, player), _weapon_attack_rate(current, player), "decimal"))
-	lines.append(_compare_line("Crit Chance", float(item.get("crit_chance")), _resource_float(current, "crit_chance"), "percent"))
-	lines.append(_compare_line("Crit Damage", float(item.get("crit_damage")), _resource_float(current, "crit_damage"), "decimal"))
-	lines.append(_compare_line("Armor Pierce", float(item.get("armor_pierce")), _resource_float(current, "armor_pierce"), "percent"))
-	lines.append(_compare_line("Pierce", float(item.get("pierce")), _resource_float(current, "pierce"), "flat"))
-	lines.append("Element: %s" % _weapon_element_name(int(item.get("element"))))
-	lines.append("Affixes: %s" % _affix_names(item.get("affixes")))
+	lines.append(_t(localization_service, "item.compare", "Compare"))
+	lines.append(_compare_line(_t(localization_service, "item.damage", "Damage"), float(item.get("base_damage")), _resource_float(current, "base_damage"), "flat", localization_service))
+	lines.append(_compare_line(_t(localization_service, "item.attack_speed", "Attack Speed"), _weapon_attack_rate(item, player), _weapon_attack_rate(current, player), "decimal", localization_service))
+	lines.append(_compare_line(_t(localization_service, "item.crit_chance", "Crit Chance"), float(item.get("crit_chance")), _resource_float(current, "crit_chance"), "percent", localization_service))
+	lines.append(_compare_line(_t(localization_service, "item.crit_damage", "Crit Damage"), float(item.get("crit_damage")), _resource_float(current, "crit_damage"), "decimal", localization_service))
+	lines.append(_compare_line(_t(localization_service, "item.armor_pierce", "Armor Pierce"), float(item.get("armor_pierce")), _resource_float(current, "armor_pierce"), "percent", localization_service))
+	lines.append(_compare_line(_t(localization_service, "item.pierce", "Pierce"), float(item.get("pierce")), _resource_float(current, "pierce"), "flat", localization_service))
+	lines.append("%s: %s" % [_t(localization_service, "item.element", "Element"), _weapon_element_name(int(item.get("element")), localization_service)])
+	lines.append(_lf(localization_service, "item.affixes_inline", [_affix_names(item.get("affixes"), localization_service)], "Affixes: %s"))
 	return "\n".join(lines)
 
-static func _format_equipment(item: Resource, player: Node) -> String:
+static func _format_equipment(item: Resource, player: Node, localization_service: Node) -> String:
 	var lines := PackedStringArray()
-	lines.append("%s  +%d" % [_name(item), _enhancement_level(item, player)])
-	lines.append("%s %s" % [_rarity_name(int(item.get("rarity"))), _equipment_slot_name(int(item.get("slot")))])
-	_append_if_not_empty(lines, str(item.get("description")))
+	lines.append("%s  +%d" % [_name(item, localization_service), _enhancement_level(item, player)])
+	lines.append("%s %s" % [_rarity_name(int(item.get("rarity")), localization_service), _equipment_slot_name(int(item.get("slot")), localization_service)])
+	_append_if_not_empty(lines, _description(item, localization_service))
 	lines.append("")
-	var stats := _stat_lines(item.get("stat_modifiers"))
+	var stats := _stat_lines(item.get("stat_modifiers"), localization_service)
 	if stats.is_empty():
-		lines.append("Stats: none")
+		lines.append(_t(localization_service, "item.stats_none", "Stats: none"))
 	else:
-		lines.append("Stats:")
+		lines.append(_t(localization_service, "item.stats", "Stats:"))
 		for line in stats:
 			lines.append("- %s" % line)
-	_append_affixes(lines, item.get("affixes"))
+	_append_affixes(lines, item.get("affixes"), localization_service)
 	return "\n".join(lines)
 
-static func _format_equipment_pickup_comparison(item: Resource, player: Node) -> String:
+static func _format_equipment_pickup_comparison(item: Resource, player: Node, localization_service: Node) -> String:
 	var slot := int(item.get("slot"))
 	var current: Resource
 	if player != null and player.get("equipped") != null:
 		current = player.equipped.get(slot)
 	var lines := PackedStringArray()
-	lines.append("Pickup: %s" % _name(item))
-	lines.append("%s %s" % [_rarity_name(int(item.get("rarity"))), _equipment_slot_name(slot)])
-	lines.append("Current: %s" % (_name(current) if current != null else "None"))
+	lines.append(_lf(localization_service, "item.pickup", [_name(item, localization_service)], "Pickup: %s"))
+	lines.append("%s %s" % [_rarity_name(int(item.get("rarity")), localization_service), _equipment_slot_name(slot, localization_service)])
+	lines.append(_lf(localization_service, "item.current", [_name(current, localization_service) if current != null else _t(localization_service, "item.none", "None")], "Current: %s"))
 	lines.append("")
-	lines.append("Compare")
+	lines.append(_t(localization_service, "item.compare", "Compare"))
 	var incoming_stats := _stats_dictionary(item.get("stat_modifiers"))
 	var current_stats := _stats_dictionary(current.get("stat_modifiers") if current != null else null)
 	var wrote_stat := false
@@ -109,43 +113,43 @@ static func _format_equipment_pickup_comparison(item: Resource, player: Node) ->
 		var current_value := float(current_stats.get(key, 0.0))
 		if is_zero_approx(incoming_value) and is_zero_approx(current_value):
 			continue
-		lines.append(_compare_line(spec[1], incoming_value, current_value, spec[2]))
+		lines.append(_compare_line(_t(localization_service, spec[3], spec[1]), incoming_value, current_value, spec[2], localization_service))
 		wrote_stat = true
 	if not wrote_stat:
-		lines.append("Stats: no direct stat change")
-	lines.append("Affixes: %s" % _affix_names(item.get("affixes")))
+		lines.append(_t(localization_service, "item.no_direct_change", "Stats: no direct stat change"))
+	lines.append(_lf(localization_service, "item.affixes_inline", [_affix_names(item.get("affixes"), localization_service)], "Affixes: %s"))
 	return "\n".join(lines)
 
-static func _append_affixes(lines: PackedStringArray, affixes: Array) -> void:
+static func _append_affixes(lines: PackedStringArray, affixes: Array, localization_service: Node) -> void:
 	lines.append("")
 	if affixes.is_empty():
-		lines.append("Affixes: none")
+		lines.append(_t(localization_service, "item.affixes_none", "Affixes: none"))
 		return
 
-	lines.append("Affixes:")
+	lines.append(_t(localization_service, "item.affixes", "Affixes:"))
 	for affix in affixes:
 		if affix == null:
 			continue
-		lines.append("- %s: %s" % [str(affix.get("display_name")), _affix_effect_line(affix)])
-		_append_if_not_empty(lines, "  %s" % str(affix.get("description")))
-		for stat_line in _stat_lines(affix.get("stat_modifiers")):
+		lines.append("- %s: %s" % [_name(affix, localization_service), _affix_effect_line(affix, localization_service)])
+		_append_if_not_empty(lines, "  %s" % _description(affix, localization_service))
+		for stat_line in _stat_lines(affix.get("stat_modifiers"), localization_service):
 			lines.append("  %s" % stat_line)
 
-static func _affix_effect_line(affix: Resource) -> String:
+static func _affix_effect_line(affix: Resource, localization_service: Node) -> String:
 	var chance := float(affix.get("proc_chance"))
 	var effect_id: StringName = affix.get("effect_id")
 	match effect_id:
 		&"fire_burst":
-			return "%s Fire Burst" % _percent(chance)
+			return _lf(localization_service, "affix.fire_burst_effect", [_percent(chance)], "%s Fire Burst")
 		&"frostbite":
-			return "%s Frostbite Slow" % _percent(chance)
+			return _lf(localization_service, "affix.frostbite_effect", [_percent(chance)], "%s Frostbite Slow")
 		&"chain_lightning":
-			return "%s Chain Lightning" % _percent(chance)
+			return _lf(localization_service, "affix.chain_lightning_effect", [_percent(chance)], "%s Chain Lightning")
 	if chance > 0.0:
-		return "%s proc" % _percent(chance)
-	return "Passive"
+		return _lf(localization_service, "affix.proc_effect", [_percent(chance)], "%s proc")
+	return _t(localization_service, "affix.passive", "Passive")
 
-static func _stat_lines(stat_block: Resource) -> PackedStringArray:
+static func _stat_lines(stat_block: Resource, localization_service: Node) -> PackedStringArray:
 	var lines := PackedStringArray()
 	var stats := _stats_dictionary(stat_block)
 	for spec in STAT_LINES:
@@ -153,7 +157,7 @@ static func _stat_lines(stat_block: Resource) -> PackedStringArray:
 		var value := float(stats.get(key, 0.0))
 		if is_zero_approx(value):
 			continue
-		lines.append("%s %s" % [_signed_value(value, spec[2]), spec[1]])
+		lines.append("%s %s" % [_signed_value(value, spec[2]), _t(localization_service, spec[3], spec[1])])
 	return lines
 
 static func _stats_dictionary(stat_block: Resource) -> Dictionary:
@@ -161,9 +165,9 @@ static func _stats_dictionary(stat_block: Resource) -> Dictionary:
 		return {}
 	return stat_block.to_dictionary()
 
-static func _compare_line(label: String, incoming: float, current: float, mode: String) -> String:
+static func _compare_line(label: String, incoming: float, current: float, mode: String, localization_service: Node) -> String:
 	var delta := incoming - current
-	return "%s: %s  (%s)" % [label, _value(incoming, mode), _delta(delta, mode)]
+	return "%s: %s  (%s)" % [label, _value(incoming, mode), _delta(delta, mode, localization_service)]
 
 static func _value(value: float, mode: String) -> String:
 	match mode:
@@ -174,10 +178,10 @@ static func _value(value: float, mode: String) -> String:
 		_:
 			return _number(value)
 
-static func _delta(value: float, mode: String) -> String:
+static func _delta(value: float, mode: String, localization_service: Node) -> String:
 	if is_zero_approx(value):
-		return "same"
-	return "%s vs current" % _signed_value(value, mode)
+		return _t(localization_service, "item.same", "same")
+	return _lf(localization_service, "item.vs_current", [_signed_value(value, mode)], "%s vs current")
 
 static func _signed_value(value: float, mode: String) -> String:
 	var sign := "+" if value > 0.0 else ""
@@ -198,10 +202,19 @@ static func _append_if_not_empty(lines: PackedStringArray, value: String) -> voi
 	if not value.strip_edges().is_empty():
 		lines.append(value)
 
-static func _name(item: Resource) -> String:
+static func _name(item: Resource, localization_service: Node) -> String:
 	if item == null:
-		return "None"
-	return str(item.get("display_name")) if item.get("display_name") != null else "Unknown Item"
+		return _t(localization_service, "item.none", "None")
+	if localization_service != null and localization_service.has_method("resource_name"):
+		return localization_service.resource_name(item)
+	return str(item.get("display_name")) if item.get("display_name") != null else _t(localization_service, "item.unknown", "Unknown Item")
+
+static func _description(item: Resource, localization_service: Node) -> String:
+	if item == null:
+		return ""
+	if localization_service != null and localization_service.has_method("resource_description"):
+		return localization_service.resource_description(item)
+	return str(item.get("description")) if item.get("description") != null else ""
 
 static func _resource_float(item: Resource, property_name: String) -> float:
 	if item == null:
@@ -215,31 +228,31 @@ static func _weapon_attack_rate(item: Resource, player: Node) -> float:
 		return player.attack_rate_for_weapon(item)
 	return float(item.get("attack_rate"))
 
-static func _affix_names(affixes: Array) -> String:
+static func _affix_names(affixes: Array, localization_service: Node) -> String:
 	if affixes.is_empty():
-		return "none"
+		return _t(localization_service, "item.none_inline", "none")
 	var names := PackedStringArray()
 	for affix in affixes:
 		if affix != null:
-			names.append(str(affix.get("display_name")))
-	return ", ".join(names) if not names.is_empty() else "none"
+			names.append(_name(affix, localization_service))
+	return ", ".join(names) if not names.is_empty() else _t(localization_service, "item.none_inline", "none")
 
-static func _rarity_name(index: int) -> String:
-	return _safe_name(RARITIES, index)
+static func _rarity_name(index: int, localization_service: Node) -> String:
+	return _safe_name(RARITIES, RARITY_KEYS, index, localization_service)
 
-static func _weapon_family_name(index: int) -> String:
-	return _safe_name(WEAPON_FAMILIES, index)
+static func _weapon_family_name(index: int, localization_service: Node) -> String:
+	return _safe_name(WEAPON_FAMILIES, WEAPON_FAMILY_KEYS, index, localization_service)
 
-static func _weapon_element_name(index: int) -> String:
-	return _safe_name(WEAPON_ELEMENTS, index)
+static func _weapon_element_name(index: int, localization_service: Node) -> String:
+	return _safe_name(WEAPON_ELEMENTS, WEAPON_ELEMENT_KEYS, index, localization_service)
 
-static func _equipment_slot_name(index: int) -> String:
-	return _safe_name(EQUIPMENT_SLOTS, index)
+static func _equipment_slot_name(index: int, localization_service: Node) -> String:
+	return _safe_name(EQUIPMENT_SLOTS, EQUIPMENT_SLOT_KEYS, index, localization_service)
 
-static func _safe_name(values: Array, index: int) -> String:
+static func _safe_name(values: Array, keys: Array, index: int, localization_service: Node) -> String:
 	if index < 0 or index >= values.size():
-		return "Unknown"
-	return str(values[index])
+		return _t(localization_service, "item.unknown", "Unknown")
+	return _t(localization_service, str(keys[index]), str(values[index]))
 
 static func _percent(value: float) -> String:
 	return "%d%%" % roundi(value * 100.0)
@@ -251,3 +264,13 @@ static func _number(value: float) -> String:
 
 static func _decimal(value: float) -> String:
 	return "%.2f" % value
+
+static func _t(localization_service: Node, key: String, fallback := "") -> String:
+	if localization_service != null and localization_service.has_method("text"):
+		return localization_service.text(key, fallback)
+	return fallback if not fallback.is_empty() else key
+
+static func _lf(localization_service: Node, key: String, args: Array = [], fallback := "") -> String:
+	if localization_service != null and localization_service.has_method("format_text"):
+		return localization_service.format_text(key, args, fallback)
+	return fallback % args if not fallback.is_empty() else key % args

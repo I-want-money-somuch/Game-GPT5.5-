@@ -14,6 +14,11 @@ var completed := false
 
 func _ready() -> void:
 	add_to_group("interactables")
+	var localization := _localization_service()
+	if localization != null and localization.has_signal("language_changed"):
+		var language_callable := Callable(self, "refresh_localization")
+		if not localization.language_changed.is_connected(language_callable):
+			localization.language_changed.connect(language_callable)
 	_refresh_visuals()
 
 func configure(service: Node, definition: Resource) -> void:
@@ -25,11 +30,14 @@ func can_interact(_player: Node) -> bool:
 	return not completed
 
 func get_prompt_text() -> String:
+	var localization := _localization_service()
+	if event_definition != null and localization != null and localization.has_method("resource_prompt"):
+		return localization.resource_prompt(event_definition)
 	if event_definition != null and event_definition.has_method("get_prompt"):
 		return event_definition.get_prompt()
 	if event_definition != null:
-		return "Use %s" % event_definition.get("display_name")
-	return "Use Event"
+		return _lf("interact.use_event", [_resource_name(event_definition)], "Use %s")
+	return _t("state.event", "Event")
 
 func interact(player: Node) -> void:
 	if completed or event_service == null or not event_service.has_method("resolve_event"):
@@ -46,7 +54,7 @@ func interact(player: Node) -> void:
 		set_deferred("monitorable", false)
 		if collision_shape != null:
 			collision_shape.set_deferred("disabled", true)
-	label.text = "Resolved"
+	label.text = _t("state.resolved", "Resolved")
 	_play_success_feedback()
 	activated.emit(self, event_definition, result)
 
@@ -54,10 +62,10 @@ func _refresh_visuals() -> void:
 	if not is_inside_tree():
 		return
 	var color := Color(0.85, 0.42, 0.18, 1.0)
-	var text := "Event"
+	var text := _t("state.resolved", "Resolved") if completed else _t("state.event", "Event")
 	if event_definition != null:
 		color = event_definition.get("event_color")
-		text = event_definition.get("display_name")
+		text = _t("state.resolved", "Resolved") if completed else _resource_name(event_definition)
 	if base_shape != null:
 		base_shape.modulate = color.darkened(0.25)
 	if core_shape != null:
@@ -76,3 +84,32 @@ func _play_denied_feedback() -> void:
 	core_shape.modulate = Color(1.0, 0.2, 0.18, 1.0)
 	var tween := core_shape.create_tween()
 	tween.tween_property(core_shape, "modulate", original, 0.18)
+
+func refresh_localization(_language := "") -> void:
+	_refresh_visuals()
+
+func _localization_service() -> Node:
+	if not is_inside_tree():
+		return null
+	var services := get_tree().get_nodes_in_group("localization_service")
+	return services[0] if not services.is_empty() else null
+
+func _t(key: String, fallback := "") -> String:
+	var localization := _localization_service()
+	if localization != null and localization.has_method("text"):
+		return localization.text(key, fallback)
+	return fallback if not fallback.is_empty() else key
+
+func _lf(key: String, args: Array = [], fallback := "") -> String:
+	var localization := _localization_service()
+	if localization != null and localization.has_method("format_text"):
+		return localization.format_text(key, args, fallback)
+	return fallback % args if not fallback.is_empty() else key % args
+
+func _resource_name(resource: Resource) -> String:
+	var localization := _localization_service()
+	if localization != null and localization.has_method("resource_name"):
+		return localization.resource_name(resource)
+	if resource == null:
+		return ""
+	return str(resource.get("display_name"))

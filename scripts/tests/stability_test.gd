@@ -15,6 +15,7 @@ func _run() -> void:
 	await _assert_sprite_status_visuals()
 	await _assert_weapon_affix_effect_runtime()
 	await _assert_event_room_runtime()
+	await _assert_settings_pause_runtime()
 	await _assert_boss_room_regression(5, &"cinder_bulwark", [&"cinderplate_core", &"bulwark_ember_ring"], false)
 	await _assert_boss_room_regression(10, &"depths_warden", [&"warden_rift_staff", &"abyssal_guard_helm"], true)
 	await _assert_ten_room_stress()
@@ -192,6 +193,28 @@ func _assert_event_room_runtime() -> void:
 	await _assert_event_cost_guards()
 	await _assert_event_one_shot()
 	await _assert_trial_event_flow()
+
+func _assert_settings_pause_runtime() -> void:
+	var main := await _instantiate_main()
+	var hud = main.get_node("HUD")
+	_require(not paused, "Settings pause fixture should start unpaused")
+	main.open_settings_for_test()
+	await process_frame
+	_require(paused, "Opening Settings during a run should pause the tree")
+	_require(main.is_settings_pause_active_for_test(), "Main should track that Settings owns the pause")
+	_require(hud.is_settings_visible_for_test(), "Runtime Settings overlay should be visible")
+	main.select_language_for_test("zh_CN")
+	await process_frame
+	_require(hud.health_label.text.contains("生命"), "Runtime language switch should refresh HUD text")
+	main.close_settings_for_test()
+	await process_frame
+	_require(not paused, "Closing Settings during a run should unpause the tree")
+	main.select_language_for_test("en")
+	await process_frame
+	_require(hud.health_label.text.contains("HP"), "Runtime language switch should return to English")
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
 
 func _assert_event_cost_guards() -> void:
 	var ember_fixture := await _spawn_event_fixture(load("res://resources/events/ember_pact.tres"))
@@ -539,6 +562,7 @@ func _instantiate_main() -> Node:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	main.configure_settings_path_for_test("user://stability_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://stability_profile_v002.json", true)
 	main.start_run_for_test()
 	await process_frame

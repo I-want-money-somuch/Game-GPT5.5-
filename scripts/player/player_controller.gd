@@ -17,6 +17,8 @@ signal died
 @export var class_definition: Resource
 @export var default_weapon: Resource
 @export var projectile_scene: PackedScene
+@export var facing_rotation_speed := 14.0
+@export var body_sprite_forward_offset := PI * 0.5
 
 var health := 100.0
 var max_health := 100.0
@@ -71,6 +73,7 @@ func initialize(loadout_class: Resource, weapon: Resource, projectile: PackedSce
 	var shape := _body_shape()
 	if shape != null:
 		shape.modulate = Color.WHITE
+		shape.rotation = 0.0
 	if default_weapon != null:
 		inventory.append(default_weapon)
 		equip_weapon(default_weapon)
@@ -85,6 +88,7 @@ func _physics_process(delta: float) -> void:
 		move_and_slide()
 		return
 
+	_update_body_facing(delta)
 	velocity = _movement_vector() * move_speed + knockback_velocity
 	move_and_slide()
 	knockback_velocity = knockback_velocity.move_toward(Vector2.ZERO, 720.0 * delta)
@@ -122,6 +126,17 @@ func _try_fire() -> void:
 
 	fire_cooldown = 1.0 / maxf(attack_rate_for_weapon(active_weapon), 0.1)
 
+func _update_body_facing(delta: float) -> void:
+	_rotate_body_toward(get_global_mouse_position() - global_position, delta)
+
+func _rotate_body_toward(direction: Vector2, delta: float) -> void:
+	var shape := _body_shape()
+	if shape == null or direction.length_squared() <= 4.0:
+		return
+	var target_rotation := direction.angle() + body_sprite_forward_offset
+	var weight := clampf(facing_rotation_speed * delta, 0.0, 1.0)
+	shape.rotation = lerp_angle(shape.rotation, target_rotation, weight)
+
 func collect_item(item: Resource) -> void:
 	if item == null or is_dead:
 		return
@@ -146,6 +161,16 @@ func equip_weapon(weapon: Resource) -> void:
 
 func bind_affix_effect_service(service: Node) -> void:
 	affix_effect_service = service
+
+func face_position_for_test(position: Vector2, delta := 1.0) -> void:
+	_rotate_body_toward(position - global_position, delta)
+
+func body_rotation_for_test() -> float:
+	var shape := _body_shape()
+	return shape.rotation if shape != null else 0.0
+
+func target_facing_rotation_for_test(position: Vector2) -> float:
+	return (position - global_position).angle() + body_sprite_forward_offset
 
 func set_input_enabled(enabled: bool) -> void:
 	input_enabled = enabled
