@@ -15,6 +15,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Boss-specific loot tables, skill profiles, and mechanic profiles
 - Main menu camp with permanent meta progression and JSON profile saving
 - In-run event room with shrine and trial interactables
+- Interactable pickups with weapon/equipment comparison preview
 
 ## Architecture goals
 
@@ -34,6 +35,7 @@ Controls:
 - Aim: mouse
 - Fire: left mouse button
 - Interact: E
+- Pick up loot: press `E` near a drop after checking the comparison panel
 - Equipment panel: `Equipment` button
 - Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
 - Exit room: press `E` at the portal after the room is clear

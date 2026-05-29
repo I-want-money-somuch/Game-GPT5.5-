@@ -10,6 +10,7 @@ signal weapon_changed(weapon: Resource)
 signal inventory_changed(count: int)
 signal loadout_changed(inventory: Array, equipped: Dictionary)
 signal interaction_prompt_changed(prompt: String)
+signal current_interactable_changed(interactable: Node)
 signal damaged(result: Dictionary)
 signal died
 
@@ -364,6 +365,7 @@ func _on_interaction_area_exited(area: Area2D) -> void:
 	nearby_interactables.erase(area)
 	if current_interactable == area:
 		current_interactable = null
+		current_interactable_changed.emit(null)
 	_refresh_interactable_prompt()
 
 func _refresh_interactable_prompt() -> void:
@@ -390,6 +392,7 @@ func _refresh_interactable_prompt() -> void:
 	if current_interactable != null and current_interactable.has_method("get_prompt_text"):
 		prompt = current_interactable.get_prompt_text()
 	interaction_prompt_changed.emit(prompt)
+	current_interactable_changed.emit(current_interactable)
 
 func _can_use_interactable(interactable: Node) -> bool:
 	if interactable == null or not is_instance_valid(interactable):

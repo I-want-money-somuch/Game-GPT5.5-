@@ -35,6 +35,8 @@ func _run() -> void:
 	player_main.modify_outgoing_packet(meta_damage_packet, starter_weapon_for_meta)
 	_require(meta_damage_packet.amount > starter_weapon_for_meta.base_damage * 1.04, "Weapon Training should increase outgoing damage")
 	_assert_equipment_detail_ui(main)
+	await _assert_pickup_preview_and_interaction(main)
+	await _assert_readable_ui_thresholds(main)
 	_require(main.get_node("ExitPortal").visible == false, "Exit should start locked in combat rooms")
 	for enemy in run.live_enemies:
 		if is_instance_valid(enemy):
@@ -378,6 +380,66 @@ func _assert_equipment_detail_ui(main: Node) -> void:
 	_require(helm_detail.contains("Helmet"), "Selected equipment detail should show slot")
 	_require(helm_detail.contains("+10 Max Health"), "Selected equipment detail should show stat modifiers")
 	_require(forge_panel.selected_item == helm, "Forge panel should receive selected equipment from equipment panel")
+
+func _assert_pickup_preview_and_interaction(main: Node) -> void:
+	var pickup_scene := load("res://scenes/items/Pickup.tscn")
+	var player = main.get_node("Player")
+	var hud = main.get_node("HUD")
+	var pickups = main.get_node("Pickups")
+	var before_inventory: int = player.inventory.size()
+
+	var weapon_pickup = pickup_scene.instantiate()
+	weapon_pickup.item_definition = load("res://resources/weapons/volt_spear.tres")
+	weapon_pickup.global_position = player.global_position
+	pickups.add_child(weapon_pickup)
+	await process_frame
+	_require(player.inventory.size() == before_inventory, "Touching a pickup should not auto-collect it")
+	_require(weapon_pickup.is_in_group("interactables"), "Pickup should join the interaction group")
+	player._on_interaction_area_entered(weapon_pickup)
+	await process_frame
+	_require(hud.interaction_label.text.contains("Pick Up Volt Spear"), "Pickup should drive the interaction prompt")
+	_require(hud.is_pickup_preview_visible_for_test(), "Weapon pickup should show the preview panel")
+	var weapon_preview: String = hud.get_pickup_preview_text_for_test()
+	_require(weapon_preview.contains("Pickup: Volt Spear"), "Weapon preview should name the pickup")
+	_require(weapon_preview.contains("Current: Ember Snap"), "Weapon preview should compare against the current weapon")
+	_require(weapon_preview.contains("Attack Speed"), "Weapon preview should include attack speed comparison")
+	_require(weapon_preview.contains("Armor Piercing"), "Weapon preview should include affix names")
+	player.force_interact_with(weapon_pickup)
+	await process_frame
+	_require(player.inventory.size() == before_inventory + 1, "Interacting with pickup should add it to inventory")
+	_require(not is_instance_valid(weapon_pickup), "Interacting with pickup should remove it from the scene")
+	_require(not hud.is_pickup_preview_visible_for_test(), "Pickup preview should hide after collecting")
+
+	var equipment_pickup = pickup_scene.instantiate()
+	equipment_pickup.item_definition = load("res://resources/equipment/ashguard_helm.tres")
+	equipment_pickup.global_position = player.global_position
+	pickups.add_child(equipment_pickup)
+	await process_frame
+	player._on_interaction_area_entered(equipment_pickup)
+	await process_frame
+	_require(hud.is_pickup_preview_visible_for_test(), "Equipment pickup should show the preview panel")
+	var equipment_preview: String = hud.get_pickup_preview_text_for_test()
+	_require(equipment_preview.contains("Pickup: Ashguard Helm"), "Equipment preview should name the pickup")
+	_require(equipment_preview.contains("Current: None"), "Equipment preview should compare against the matching empty slot")
+	_require(equipment_preview.contains("Max Health"), "Equipment preview should include stat comparison")
+	player.force_interact_with(equipment_pickup)
+	await process_frame
+	_require(player.equipped.has(0), "Equipment pickup interaction should equip the item")
+
+func _assert_readable_ui_thresholds(main: Node) -> void:
+	var hud = main.get_node("HUD")
+	_require(hud.health_label.get_theme_font_size("font_size") >= 20, "HUD labels should use readable font sizes")
+	_require(hud.equipment_button.get_theme_font_size("font_size") >= 20, "HUD buttons should use readable font sizes")
+	_require(hud.equipment_button.custom_minimum_size.y >= 44.0, "HUD buttons should have larger touch targets")
+	_require(hud.equipment_panel.detail_text.custom_minimum_size.y >= 148.0, "Equipment detail area should be taller")
+	_require(hud.pickup_preview_text.get_theme_font_size("normal_font_size") >= 18, "Pickup preview text should be readable")
+
+	var pickup_scene := load("res://scenes/items/Pickup.tscn")
+	var pickup = pickup_scene.instantiate()
+	root.add_child(pickup)
+	await process_frame
+	_require(pickup.label.get_theme_font_size("font_size") >= 16, "Pickup labels should be larger than the original tiny label")
+	pickup.queue_free()
 
 func _assert_boss_definition(definition: Resource, label: String) -> void:
 	_require(definition != null, "%s definition should load" % label)

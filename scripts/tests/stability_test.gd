@@ -190,6 +190,7 @@ func _assert_trial_event_flow() -> void:
 	chest.interact(player)
 	await process_frame
 	_require(main.get_node("Pickups").get_child_count() > pickups_before, "Trial reward chest should drop loot")
+	await _assert_pickup_can_be_interacted(main, player, "Trial reward")
 	station.interact(player)
 	await process_frame
 	_require(_count_reward_chests(main) == 1, "Resolved Trial Altar should not spawn duplicate chests")
@@ -290,6 +291,7 @@ func _assert_boss_room_regression(floor: int, boss_id: StringName, exclusive_ite
 	await process_frame
 	_require(main.get_node("Pickups").get_child_count() > pickups_before, "%s chest should drop loot" % boss_id)
 	_require(_pickup_ids_include(main, exclusive_item_ids), "%s chest should include exclusive boss loot" % boss_id)
+	await _assert_pickup_can_be_interacted(main, player, "%s boss chest" % boss_id)
 	_require(bool(completed["value"]) == should_complete, "%s completion state should match room type" % boss_id)
 	if should_complete:
 		_require(not run.exit_unlocked, "Final boss should complete run instead of unlocking exit")
@@ -332,7 +334,7 @@ func _assert_ten_room_stress() -> void:
 		await process_frame
 		await process_frame
 		_require(run.live_enemies.is_empty(), "Stress floor %d should clear all enemies" % expected_floor)
-		await create_timer(0.35).timeout
+		await create_timer(0.75).timeout
 		_require(_runtime_node_count() == 0, "Stress floor %d should not leave attack runtime nodes" % expected_floor)
 
 		var chest = _find_reward_chest(main)
@@ -424,6 +426,25 @@ func _find_forge_station(main: Node) -> Node:
 		if child.has_method("get_prompt_text") and child.get_prompt_text() == "Use Forge" and child.has_method("interact"):
 			return child
 	return null
+
+func _find_pickup(main: Node) -> Node:
+	for child in main.get_node("Pickups").get_children():
+		if child.has_method("interact") and child.get("item_definition") != null:
+			return child
+	return null
+
+func _assert_pickup_can_be_interacted(main: Node, player: Node, label: String) -> void:
+	var pickup = _find_pickup(main)
+	_require(pickup != null, "%s should leave at least one pickup to inspect" % label)
+	_require(pickup.is_in_group("interactables"), "%s pickup should use the interaction group" % label)
+	_require(pickup.has_method("get_preview_item") and pickup.get_preview_item() != null, "%s pickup should expose preview item data" % label)
+	var inventory_before: int = player.inventory.size()
+	player._on_interaction_area_entered(pickup)
+	await process_frame
+	_require(main.get_node("HUD").is_pickup_preview_visible_for_test(), "%s pickup should show preview UI" % label)
+	player.force_interact_with(pickup)
+	await process_frame
+	_require(player.inventory.size() == inventory_before + 1, "%s pickup should enter inventory after interaction" % label)
 
 func _find_event_station(main: Node) -> Node:
 	for child in main.get_node("Interactables").get_children():

@@ -1,6 +1,8 @@
 class_name HUD
 extends CanvasLayer
 
+const ItemDetailFormatterScript := preload("res://scripts/ui/item_detail_formatter.gd")
+
 signal start_run_requested
 signal reset_save_requested
 signal talent_purchase_requested(talent_id: StringName)
@@ -13,6 +15,8 @@ signal camp_requested
 @onready var inventory_label: Label = %InventoryLabel
 @onready var message_label: Label = %MessageLabel
 @onready var interaction_label: Label = %InteractionLabel
+@onready var pickup_preview_panel: PanelContainer = %PickupPreviewPanel
+@onready var pickup_preview_text: RichTextLabel = %PickupPreviewText
 @onready var equipment_button: Button = %EquipmentButton
 @onready var forge_button: Button = %ForgeToggleButton
 @onready var equipment_panel = %EquipmentPanel
@@ -39,6 +43,7 @@ func _ready() -> void:
 	_apply_readable_ui($Root)
 	equipment_panel.visible = false
 	forge_panel.visible = false
+	pickup_preview_panel.visible = false
 	run_end_overlay.visible = false
 	main_menu_overlay.visible = false
 	forge_button.disabled = true
@@ -60,6 +65,8 @@ func bind_player(player: Node) -> void:
 	player.inventory_changed.connect(_on_inventory_changed)
 	if player.has_signal("interaction_prompt_changed"):
 		player.interaction_prompt_changed.connect(_on_interaction_prompt_changed)
+	if player.has_signal("current_interactable_changed"):
+		player.current_interactable_changed.connect(_on_current_interactable_changed.bind(player))
 	player.died.connect(_on_player_died)
 	_on_health_changed(player.health, player.max_health)
 	_on_armor_changed(player.armor_component.current_durability, player.armor_component.max_durability)
@@ -110,11 +117,21 @@ func _on_inventory_changed(count: int) -> void:
 func _on_interaction_prompt_changed(prompt: String) -> void:
 	interaction_label.text = "Press E - %s" % prompt if not prompt.is_empty() else ""
 
+func _on_current_interactable_changed(interactable: Node, player: Node) -> void:
+	if interactable != null and interactable.has_method("get_preview_item"):
+		var item: Resource = interactable.get_preview_item()
+		pickup_preview_text.text = ItemDetailFormatterScript.format_pickup_comparison(item, player)
+		pickup_preview_panel.visible = not pickup_preview_text.text.is_empty()
+	else:
+		pickup_preview_panel.visible = false
+		pickup_preview_text.text = ""
+
 func _on_room_started(floor: int, room_type: String) -> void:
 	floor_label.text = "Floor %d/10" % floor
 	message_label.text = room_type.capitalize().replace("_", " ")
 	run_end_overlay.visible = false
 	main_menu_overlay.visible = false
+	pickup_preview_panel.visible = false
 
 func _on_player_died() -> void:
 	message_label.text = "Run ended"
@@ -132,6 +149,7 @@ func _show_run_end(title: String, body: String) -> void:
 	main_menu_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
+	pickup_preview_panel.visible = false
 
 func show_run_end_summary(title: String, stats: Dictionary, rewards: Dictionary) -> void:
 	var body := PackedStringArray()
@@ -148,6 +166,7 @@ func show_main_menu() -> void:
 	run_end_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
+	pickup_preview_panel.visible = false
 	message_label.text = "Camp"
 
 func hide_main_menu() -> void:
@@ -195,13 +214,22 @@ func _apply_readable_ui(node: Node) -> void:
 	for child in node.get_children():
 		if child is Label:
 			var label := child as Label
-			var size := 20 if label.name.contains("Title") else 18
+			var size := 24 if label.name.contains("Title") else 20
 			label.add_theme_font_size_override("font_size", max(label.get_theme_font_size("font_size"), size))
 		elif child is Button:
 			var button := child as Button
-			button.add_theme_font_size_override("font_size", max(button.get_theme_font_size("font_size"), 18))
-			button.custom_minimum_size = button.custom_minimum_size.max(Vector2(108, 36))
+			button.add_theme_font_size_override("font_size", max(button.get_theme_font_size("font_size"), 20))
+			button.custom_minimum_size = button.custom_minimum_size.max(Vector2(128, 44))
 		elif child is ItemList:
 			var list := child as ItemList
-			list.add_theme_font_size_override("font_size", max(list.get_theme_font_size("font_size"), 18))
+			list.add_theme_font_size_override("font_size", max(list.get_theme_font_size("font_size"), 20))
+		elif child is RichTextLabel:
+			var rich_label := child as RichTextLabel
+			rich_label.add_theme_font_size_override("normal_font_size", max(rich_label.get_theme_font_size("normal_font_size"), 18))
 		_apply_readable_ui(child)
+
+func is_pickup_preview_visible_for_test() -> bool:
+	return pickup_preview_panel.visible
+
+func get_pickup_preview_text_for_test() -> String:
+	return pickup_preview_text.text

@@ -54,6 +54,8 @@ The current vertical slice is intentionally deterministic:
 
 The player owns a small interaction area that scans nodes in the `interactables` group. Interactable scenes expose `can_interact(player)`, `get_prompt_text()`, and `interact(player)`. HUD prompt text is driven by the player's current interactable, so new interactables can be added without custom HUD logic.
 
+Pickups use this same interaction path instead of collision auto-collect. If an interactable exposes `get_preview_item()`, HUD shows a comparison panel using `ItemDetailFormatter` before the player presses `E` to collect.
+
 Event stations use the same protocol as reward chests, forge stations, and exit portals. `DungeonRun` owns event-room placement and trial enemy/chest pacing, while `EventService` owns whether the player can pay the event cost and how temporary run modifiers are applied.
 
 ## Meta progression flow
