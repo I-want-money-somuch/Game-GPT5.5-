@@ -37,23 +37,27 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body: Node) -> void:
-	if body == source or not body.is_in_group("players") or not body.has_method("take_damage"):
+	var valid_source := _valid_source()
+	if body == valid_source or not body.is_in_group("players") or not body.has_method("take_damage"):
 		return
 
 	var packet = DamagePacketScript.new()
 	packet.amount = damage
-	packet.source = source
+	packet.source = valid_source
 	packet.element = &"physical"
 	packet.hit_position = global_position
 	packet.hit_direction = velocity.normalized()
 	packet.knockback_force = knockback_force
 	body.take_damage(packet)
-	if source != null and is_instance_valid(source) and source.has_method("notify_damage_dealt"):
-		source.notify_damage_dealt(packet, body)
+	if valid_source != null and valid_source.has_method("notify_damage_dealt"):
+		valid_source.notify_damage_dealt(packet, body)
 	if pierce <= 0:
 		queue_free()
 	else:
 		pierce -= 1
+
+func _valid_source() -> Node:
+	return source if source != null and is_instance_valid(source) else null
 
 func _build_shape() -> void:
 	var polygon := Polygon2D.new()

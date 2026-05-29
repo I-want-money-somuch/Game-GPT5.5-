@@ -2,11 +2,14 @@ extends SceneTree
 
 const DamagePacketScript := preload("res://scripts/combat/damage_packet.gd")
 const AffixEffectServiceScript := preload("res://scripts/systems/affix_effect_service.gd")
+const BossAttackEffectScript := preload("res://scripts/boss/boss_attack_effect.gd")
+const BossProjectileScript := preload("res://scripts/boss/boss_projectile.gd")
 
 func _init() -> void:
 	call_deferred("_run")
 
 func _run() -> void:
+	await _assert_freed_damage_sources_are_safe()
 	await _assert_elite_room_cadence()
 	await _assert_elite_affix_runtime()
 	await _assert_weapon_affix_effect_runtime()
@@ -16,6 +19,52 @@ func _run() -> void:
 	await _assert_ten_room_stress()
 	print("STABILITY_OK")
 	quit()
+
+func _assert_freed_damage_sources_are_safe() -> void:
+	var player_scene := load("res://scenes/player/Player.tscn")
+	var player = player_scene.instantiate()
+	root.add_child(player)
+	player.initialize(load("res://resources/classes/vanguard.tres"), load("res://resources/weapons/ember_snap.tres"), load("res://scenes/items/Projectile.tscn"))
+	player.health = player.max_health * 4.0
+
+	var freed_source := Node2D.new()
+	root.add_child(freed_source)
+	var projectile = BossProjectileScript.new()
+	projectile.global_position = Vector2(9000, 9000)
+	root.add_child(projectile)
+	projectile.configure({
+		"source": freed_source,
+		"direction": Vector2.RIGHT,
+		"damage": 1.0,
+		"knockback_force": 0.0,
+		"pierce": 1,
+	})
+	var effect = BossAttackEffectScript.new()
+	effect.global_position = player.global_position
+	effect.configure_circle({
+		"source": freed_source,
+		"target": player,
+		"radius": 48.0,
+		"damage": 1.0,
+		"warning_duration": 0.05,
+		"knockback_force": 0.0,
+	})
+	root.add_child(effect)
+	freed_source.queue_free()
+	await process_frame
+
+	var weapon := load("res://resources/weapons/ember_snap.tres")
+	var packet = weapon.create_damage_packet(freed_source)
+	_require(packet.source == null, "Weapon damage packets should drop freed sources")
+	projectile._on_body_entered(player)
+	effect._apply_damage()
+	await process_frame
+	_require(player.health < player.max_health * 4.0, "Freed-source attacks should still resolve damage")
+
+	projectile.queue_free()
+	effect.queue_free()
+	player.queue_free()
+	await process_frame
 
 func _assert_elite_room_cadence() -> void:
 	var main := await _instantiate_main()

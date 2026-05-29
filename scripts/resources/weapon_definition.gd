@@ -52,7 +52,7 @@ const DamagePacketScript := preload("res://scripts/combat/damage_packet.gd")
 
 @export var affixes: Array[Resource] = []
 
-func create_damage_packet(source: Node = null) -> RefCounted:
+func create_damage_packet(source = null) -> RefCounted:
 	var packet = DamagePacketScript.new()
 	packet.amount = base_damage
 	packet.element = Element.keys()[element].to_lower()
@@ -60,7 +60,7 @@ func create_damage_packet(source: Node = null) -> RefCounted:
 	packet.crit_multiplier = crit_damage
 	packet.armor_pierce = armor_pierce
 	packet.knockback_force = knockback_force
-	packet.source = source
+	packet.source = source if source != null and is_instance_valid(source) else null
 	packet.tags = _collect_tags()
 	return packet
 

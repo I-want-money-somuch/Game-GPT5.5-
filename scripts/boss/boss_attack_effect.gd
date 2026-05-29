@@ -87,16 +87,20 @@ func _apply_damage() -> void:
 	if not _target_inside(target.global_position):
 		return
 
+	var valid_source := _valid_source()
 	var packet = DamagePacketScript.new()
 	packet.amount = damage
-	packet.source = source if source != null and is_instance_valid(source) else null
+	packet.source = valid_source
 	packet.element = &"physical"
 	packet.hit_position = target.global_position
 	packet.hit_direction = _hit_direction(target.global_position)
 	packet.knockback_force = knockback_force
 	target.take_damage(packet)
-	if source != null and is_instance_valid(source) and source.has_method("notify_damage_dealt"):
-		source.notify_damage_dealt(packet, target)
+	if valid_source != null and valid_source.has_method("notify_damage_dealt"):
+		valid_source.notify_damage_dealt(packet, target)
+
+func _valid_source() -> Node:
+	return source if source != null and is_instance_valid(source) else null
 
 func _target_inside(point: Vector2) -> bool:
 	if shape_type == ShapeType.CIRCLE:

@@ -30,7 +30,7 @@ func _physics_process(delta: float) -> void:
 		queue_free()
 
 func _on_body_entered(body: Node) -> void:
-	if body == owner_entity or weapon_definition == null:
+	if body == _valid_owner() or weapon_definition == null:
 		return
 
 	if team == GameConstantsScript.Team.PLAYER and body.is_in_group("enemies"):
@@ -39,15 +39,19 @@ func _on_body_entered(body: Node) -> void:
 		_hit(body)
 
 func _hit(body: Node) -> void:
-	var packet = weapon_definition.create_damage_packet(owner_entity)
+	var valid_owner := _valid_owner()
+	var packet = weapon_definition.create_damage_packet(valid_owner)
 	packet.hit_direction = velocity.normalized()
 	packet.hit_position = global_position
-	if owner_entity != null and owner_entity.has_method("modify_outgoing_packet"):
-		owner_entity.modify_outgoing_packet(packet, weapon_definition)
+	if valid_owner != null and valid_owner.has_method("modify_outgoing_packet"):
+		valid_owner.modify_outgoing_packet(packet, weapon_definition)
 	body.take_damage(packet)
-	if team == GameConstantsScript.Team.PLAYER and owner_entity != null and owner_entity.has_method("notify_weapon_hit"):
-		owner_entity.notify_weapon_hit(packet, weapon_definition, body)
+	if team == GameConstantsScript.Team.PLAYER and valid_owner != null and valid_owner.has_method("notify_weapon_hit"):
+		valid_owner.notify_weapon_hit(packet, weapon_definition, body)
 	if remaining_pierce <= 0:
 		queue_free()
 	else:
 		remaining_pierce -= 1
+
+func _valid_owner() -> Node:
+	return owner_entity if owner_entity != null and is_instance_valid(owner_entity) else null
