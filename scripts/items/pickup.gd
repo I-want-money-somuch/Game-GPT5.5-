@@ -1,10 +1,13 @@
 class_name Pickup
 extends Area2D
 
+const WEAPON_TEXTURE := preload("res://assets/sprites/items/pickup_weapon.png")
+const EQUIPMENT_TEXTURE := preload("res://assets/sprites/items/pickup_equipment.png")
+
 @export var item_definition: Resource
 
 @onready var label: Label = $Label
-@onready var shape: Polygon2D = $Shape
+@onready var shape: Sprite2D = $Shape
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 var picked_up := false
@@ -16,16 +19,20 @@ func _ready() -> void:
 func _refresh_visuals() -> void:
 	if item_definition == null:
 		label.text = "Drop"
-		shape.color = Color(0.9, 0.9, 0.9)
+		shape.texture = EQUIPMENT_TEXTURE
+		shape.modulate = Color(0.9, 0.9, 0.9)
 		return
 
 	label.text = item_definition.display_name
 	if item_definition.has_method("create_damage_packet"):
-		shape.color = Color(0.9, 0.45, 0.2)
+		shape.texture = WEAPON_TEXTURE
+		shape.modulate = Color.WHITE
 	elif item_definition.has_method("get_slot_name"):
-		shape.color = Color(0.2, 0.65, 0.9)
+		shape.texture = EQUIPMENT_TEXTURE
+		shape.modulate = Color.WHITE
 	else:
-		shape.color = Color(0.9, 0.9, 0.9)
+		shape.texture = EQUIPMENT_TEXTURE
+		shape.modulate = Color(0.9, 0.9, 0.9)
 
 func can_interact(player: Node) -> bool:
 	return not picked_up and item_definition != null and player != null and player.has_method("collect_item")

@@ -7,8 +7,8 @@ var event_service: Node
 var event_definition: Resource
 var completed := false
 
-@onready var base_shape: Polygon2D = $BaseShape
-@onready var core_shape: Polygon2D = $CoreShape
+@onready var base_shape: Node2D = $BaseShape
+@onready var core_shape: Node2D = $CoreShape
 @onready var label: Label = $Label
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
@@ -59,9 +59,9 @@ func _refresh_visuals() -> void:
 		color = event_definition.get("event_color")
 		text = event_definition.get("display_name")
 	if base_shape != null:
-		base_shape.color = color.darkened(0.5)
+		base_shape.modulate = color.darkened(0.25)
 	if core_shape != null:
-		core_shape.color = color
+		core_shape.modulate = color.lightened(0.12)
 	if label != null:
 		label.text = text
 

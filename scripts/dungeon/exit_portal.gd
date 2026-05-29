@@ -4,7 +4,7 @@ extends Area2D
 signal activated
 
 @onready var label: Label = $Label
-@onready var ring: Polygon2D = $Ring
+@onready var ring: Node2D = $Ring
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
 var available := false

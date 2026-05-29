@@ -10,8 +10,8 @@ var guaranteed := false
 var source_definition: Resource
 var is_open := false
 
-@onready var body_shape: Polygon2D = $BodyShape
-@onready var lid_shape: Polygon2D = $LidShape
+@onready var body_shape: Node2D = $BodyShape
+@onready var lid_shape: Node2D = $LidShape
 @onready var label: Label = $Label
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 
@@ -48,7 +48,7 @@ func interact(_player: Node) -> void:
 
 func _play_open_feedback() -> void:
 	lid_shape.rotation = -0.45
-	body_shape.color = Color(0.58, 0.38, 0.18)
+	body_shape.modulate = Color(0.92, 0.78, 0.55)
 	var tween := create_tween()
 	tween.tween_property(lid_shape, "position", lid_shape.position + Vector2(0, -10), 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.parallel().tween_property(lid_shape, "modulate:a", 0.45, 0.16)

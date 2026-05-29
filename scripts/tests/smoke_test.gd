@@ -15,6 +15,7 @@ func _run() -> void:
 	var main = main_scene.instantiate()
 	root.add_child(main)
 	await process_frame
+	_assert_pixel_art_assets()
 	main.configure_profile_path_for_test("user://smoke_profile_v002.json", true)
 	await process_frame
 	var run = main.get_node("DungeonRun")
@@ -25,6 +26,7 @@ func _run() -> void:
 	_assert_meta_menu_and_talents(main)
 	main.start_run_for_test()
 	await process_frame
+	await _assert_sprite_scene_visuals(main)
 	_require(run.current_room_definition != null, "Run should start in a room definition")
 	_require(run.current_room_definition.id == &"combat_room", "Run should start in combat room")
 	_require(player_main.max_health >= 130.0, "Vital Core should increase starting health")
@@ -321,6 +323,106 @@ func _kill_enemy_for_test(enemy: Node, player: Node) -> void:
 	packet.hit_direction = Vector2.RIGHT
 	enemy.take_damage(packet)
 
+func _assert_pixel_art_assets() -> void:
+	var assets := [
+		["res://assets/sprites/characters/player_vanguard.png", 32, 32],
+		["res://assets/sprites/enemies/ashling.png", 32, 32],
+		["res://assets/sprites/enemies/glassmite.png", 32, 32],
+		["res://assets/sprites/enemies/iron_husk.png", 32, 32],
+		["res://assets/sprites/enemies/cinder_bulwark.png", 48, 48],
+		["res://assets/sprites/enemies/depths_warden.png", 64, 64],
+		["res://assets/sprites/items/pickup_weapon.png", 32, 32],
+		["res://assets/sprites/items/pickup_equipment.png", 32, 32],
+		["res://assets/sprites/effects/player_projectile.png", 32, 32],
+		["res://assets/sprites/effects/boss_projectile.png", 32, 32],
+		["res://assets/sprites/interactables/chest_body.png", 32, 32],
+		["res://assets/sprites/interactables/chest_lid.png", 32, 32],
+		["res://assets/sprites/interactables/forge_station.png", 32, 32],
+		["res://assets/sprites/interactables/forge_core.png", 32, 32],
+		["res://assets/sprites/interactables/event_station.png", 32, 32],
+		["res://assets/sprites/interactables/event_core.png", 32, 32],
+		["res://assets/sprites/interactables/exit_portal.png", 32, 32],
+		["res://assets/sprites/environment/dungeon_floor_tile.png", 16, 16],
+		["res://assets/sprites/environment/dungeon_wall_tile.png", 16, 16],
+		["res://assets/sprites/environment/dungeon_floor_panel.png", 960, 540],
+		["res://assets/sprites/environment/dungeon_wall_horizontal.png", 960, 32],
+		["res://assets/sprites/environment/dungeon_wall_vertical.png", 32, 540],
+	]
+	for asset in assets:
+		_assert_png_asset(asset[0], asset[1], asset[2])
+
+func _assert_png_asset(path: String, width: int, height: int) -> void:
+	var texture := load(path)
+	_require(texture is Texture2D, "%s should import as a Texture2D" % path)
+	var image := Image.new()
+	var error := image.load(ProjectSettings.globalize_path(path))
+	_require(error == OK, "%s should load as an Image" % path)
+	_require(image.get_width() == width and image.get_height() == height, "%s should be %dx%d" % [path, width, height])
+	_require(_image_has_visible_pixel(image), "%s should not be fully transparent" % path)
+
+func _image_has_visible_pixel(image: Image) -> bool:
+	for y in range(image.get_height()):
+		for x in range(image.get_width()):
+			if image.get_pixel(x, y).a > 0.05:
+				return true
+	return false
+
+func _assert_sprite_scene_visuals(main: Node) -> void:
+	_assert_sprite_node(main.get_node("Player"), "BodySprite", "Player should use a pixel sprite")
+	var arena = main.get_node("Arena")
+	_assert_texture_rect(arena, "FloorTexture", "Arena should use a pixel floor texture")
+	_assert_texture_rect(arena, "NorthWallTexture", "Arena should use pixel wall textures")
+	_assert_sprite_node(main.get_node("ExitPortal"), "Ring", "Exit portal should use a pixel sprite")
+
+	var enemy_scene := load("res://scenes/enemies/Enemy.tscn")
+	var player = main.get_node("Player")
+	for definition in [
+		load("res://resources/enemies/ashling.tres"),
+		load("res://resources/enemies/glassmite.tres"),
+		load("res://resources/enemies/iron_husk.tres"),
+		load("res://resources/enemies/cinder_bulwark.tres"),
+		load("res://resources/enemies/depths_warden.tres"),
+	]:
+		var enemy = enemy_scene.instantiate()
+		enemy.definition = definition
+		enemy.target = player
+		root.add_child(enemy)
+		await process_frame
+		var sprite := _assert_sprite_node(enemy, "BodySprite", "%s should use a pixel sprite" % definition.display_name)
+		_require(sprite.texture == definition.visual_texture, "%s should apply its definition texture" % definition.display_name)
+		enemy.queue_free()
+		await process_frame
+
+	for scene_info in [
+		["res://scenes/items/Pickup.tscn", ["Shape"]],
+		["res://scenes/items/Projectile.tscn", ["Shape"]],
+		["res://scenes/interactables/RewardChest.tscn", ["BodyShape", "LidShape"]],
+		["res://scenes/interactables/ForgeStation.tscn", ["BaseShape", "CoreShape"]],
+		["res://scenes/interactables/EventStation.tscn", ["BaseShape", "CoreShape"]],
+	]:
+		var scene: PackedScene = load(scene_info[0])
+		var instance = scene.instantiate()
+		root.add_child(instance)
+		await process_frame
+		for node_path in scene_info[1]:
+			_assert_sprite_node(instance, node_path, "%s should expose %s as a pixel sprite" % [scene_info[0], node_path])
+		instance.queue_free()
+		await process_frame
+
+func _assert_sprite_node(parent: Node, node_path: NodePath, message: String) -> Sprite2D:
+	var sprite := parent.get_node_or_null(node_path) as Sprite2D
+	_require(sprite != null, message)
+	_require(sprite.texture != null, "%s should have a texture" % message)
+	_require(sprite.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "%s should use nearest filtering" % message)
+	return sprite
+
+func _assert_texture_rect(parent: Node, node_path: NodePath, message: String) -> TextureRect:
+	var texture_rect := parent.get_node_or_null(node_path) as TextureRect
+	_require(texture_rect != null, message)
+	_require(texture_rect.texture != null, "%s should have a texture" % message)
+	_require(texture_rect.texture_filter == CanvasItem.TEXTURE_FILTER_NEAREST, "%s should use nearest filtering" % message)
+	return texture_rect
+
 func _require(condition: bool, message: String) -> void:
 	if condition:
 		return
@@ -443,6 +545,7 @@ func _assert_readable_ui_thresholds(main: Node) -> void:
 
 func _assert_boss_definition(definition: Resource, label: String) -> void:
 	_require(definition != null, "%s definition should load" % label)
+	_require(definition.visual_texture != null, "%s should have a pixel visual texture" % label)
 	_require(definition.boss_skill_profile != null, "%s should have a boss skill profile" % label)
 	_require(definition.boss_mechanic_profile != null, "%s should have a boss mechanic profile" % label)
 	_require(definition.boss_loot_table != null, "%s should have a boss loot table" % label)
@@ -452,6 +555,7 @@ func _assert_normal_enemy_definitions(definitions: Array) -> void:
 	_require(definitions.size() == 3, "MVP should load three normal enemy definitions")
 	for definition in definitions:
 		_require(definition != null, "Normal enemy definition should load")
+		_require(definition.visual_texture != null, "%s should have a pixel visual texture" % definition.display_name)
 		_require(definition.behavior_profile != null, "%s should have a behavior profile" % definition.display_name)
 		_require(float(definition.behavior_profile.get("attack_range")) > 0.0, "%s behavior should define attack range" % definition.display_name)
 

@@ -38,7 +38,7 @@ var run_stat_modifiers := {}
 var rng := RandomNumberGenerator.new()
 
 @onready var armor_component: Node = $ArmorComponent
-@onready var body_shape: Polygon2D = $BodyShape
+@onready var body_shape: Node2D = $BodySprite
 @onready var interaction_area: Area2D = $InteractionArea
 
 func _ready() -> void:
@@ -332,10 +332,10 @@ func _armor_component() -> Node:
 		return armor_component
 	return get_node_or_null("ArmorComponent")
 
-func _body_shape() -> Polygon2D:
+func _body_shape() -> Node2D:
 	if body_shape != null:
 		return body_shape
-	return get_node_or_null("BodyShape") as Polygon2D
+	return get_node_or_null("BodySprite") as Node2D
 
 func _interaction_area() -> Area2D:
 	if interaction_area != null:

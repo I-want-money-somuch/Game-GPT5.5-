@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://resources/boss_skill_profiles/cinder_bulwark_skills.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/boss_mechanic_profiles/cinder_bulwark_mechanics.tres" id="4"]
 [ext_resource type="Resource" uid="uid://cefvvf1lfbmv0" path="res://resources/loot_tables/bosses/cinder_bulwark_loot_table.tres" id="5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/cinder_bulwark.png" id="6"]
 
 [sub_resource type="Resource" id="StatBlock_cinder_bulwark"]
 script = ExtResource("2")
@@ -27,6 +28,7 @@ attack_range = 34.0
 attack_interval = 1.1
 aggro_range = 620.0
 color = Color(0.75, 0.18, 0.08, 1)
+visual_texture = ExtResource("6")
 boss_skill_profile = ExtResource("3")
 boss_mechanic_profile = ExtResource("4")
 boss_loot_table = ExtResource("5")

@@ -16,6 +16,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Main menu camp with permanent meta progression and JSON profile saving
 - In-run event room with shrine and trial interactables
 - Interactable pickups with weapon/equipment comparison preview
+- Original 32px pixel placeholder art for core actors, interactables, projectiles, and the dungeon floor
 
 ## Architecture goals
 
@@ -23,6 +24,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Runtime systems live under `scripts/systems/`.
 - Combat rules live under `scripts/combat/`.
 - Entity scripts stay thin and read definitions instead of hardcoding stats.
+- Placeholder pixel art lives under `assets/sprites/` and can be regenerated from `tools/generate_pixel_art.gd`.
 - Multiplayer-facing logic is isolated in `multiplayer/` for future LAN co-op.
 
 ## Run

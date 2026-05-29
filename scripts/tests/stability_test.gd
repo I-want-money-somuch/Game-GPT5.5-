@@ -12,6 +12,7 @@ func _run() -> void:
 	await _assert_freed_damage_sources_are_safe()
 	await _assert_elite_room_cadence()
 	await _assert_elite_affix_runtime()
+	await _assert_sprite_status_visuals()
 	await _assert_weapon_affix_effect_runtime()
 	await _assert_event_room_runtime()
 	await _assert_boss_room_regression(5, &"cinder_bulwark", [&"cinderplate_core", &"bulwark_ember_ring"], false)
@@ -104,6 +105,23 @@ func _assert_elite_affix_runtime() -> void:
 	await _assert_juggernaut_affix()
 	await _assert_phasing_affix()
 	await _assert_vampiric_affix()
+
+func _assert_sprite_status_visuals() -> void:
+	var fixture := await _spawn_elite_fixture(load("res://resources/elite_affixes/phasing.tres"))
+	var enemy = fixture["enemy"]
+	var sprite := enemy.get_node_or_null("BodySprite") as Sprite2D
+	_require(sprite != null and sprite.texture != null, "Enemy runtime should expose a textured BodySprite")
+	enemy.apply_status_effect(&"frostbite", {
+		"duration": 0.25,
+		"move_speed_multiplier": 0.55,
+	})
+	await process_frame
+	_require(sprite.modulate.b > 1.0, "Frostbite should tint the enemy sprite")
+	await create_timer(0.32).timeout
+	enemy.force_elite_phasing_for_test()
+	await process_frame
+	_require(sprite.modulate.a < 0.7, "Phasing should make the enemy sprite visibly translucent")
+	_cleanup_fixture(fixture)
 
 func _assert_flaming_affix() -> void:
 	var fixture := await _spawn_elite_fixture(load("res://resources/elite_affixes/flaming.tres"))

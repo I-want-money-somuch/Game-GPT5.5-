@@ -50,7 +50,8 @@ var damage_reduction_override := 0.0
 var rng := RandomNumberGenerator.new()
 
 @onready var armor_component: Node = $ArmorComponent
-@onready var body_shape: Polygon2D = $BodyShape
+@onready var body_shape: Node2D = $BodySprite
+@onready var body_sprite: Sprite2D = $BodySprite
 
 func _ready() -> void:
 	rng.randomize()
@@ -167,6 +168,7 @@ func _apply_definition() -> void:
 	health = max_health
 	move_speed = maxf(float(stats.get("move_speed", 80.0)), 1.0)
 	armor_component.configure(stats)
+	_refresh_definition_texture()
 	_refresh_elite_visuals()
 	behavior_profile = definition.get("behavior_profile")
 	if _is_boss_unit():
@@ -535,7 +537,7 @@ func _skill_molten_guard() -> float:
 	body_shape.modulate = Color(1.0, 0.72, 0.28)
 	_after(duration, func() -> void:
 		damage_reduction_override = 0.0
-		body_shape.modulate = Color.WHITE
+		body_shape.modulate = _state_visual_modulate()
 		_spawn_circle_warning(global_position, 72.0, 20.0 * _boss_power(), 0.22, Color(1.0, 0.34, 0.08, 0.45), 210.0)
 	)
 	return duration + 0.32
@@ -586,7 +588,7 @@ func trigger_phase_two() -> bool:
 	_feedback_call("boss_phase_transition", global_position, definition.color.lightened(0.2))
 	var tween := body_shape.create_tween()
 	tween.tween_property(body_shape, "scale", Vector2.ONE, 0.35).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.parallel().tween_property(body_shape, "modulate", Color.WHITE, 0.35)
+	tween.parallel().tween_property(body_shape, "modulate", _state_visual_modulate(), 0.35)
 	return true
 
 func force_phase_two_for_test() -> bool:
@@ -711,12 +713,12 @@ func _play_hit_feedback(packet: RefCounted, result: Dictionary) -> void:
 	body_shape.modulate = Color(1.7, 1.7, 1.7)
 	body_shape.scale = Vector2(1.18, 0.86)
 	var tween := body_shape.create_tween()
-	tween.tween_property(body_shape, "modulate", Color.WHITE, 0.09)
+	tween.tween_property(body_shape, "modulate", _state_visual_modulate(), 0.09)
 	tween.parallel().tween_property(body_shape, "scale", Vector2.ONE, 0.09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	_feedback_call("enemy_hit", packet.hit_position if packet.hit_position != Vector2.ZERO else global_position, result)
 
 func _play_death_feedback() -> void:
-	_feedback_call("enemy_died", global_position, body_shape.color)
+	_feedback_call("enemy_died", global_position, _death_feedback_color())
 
 func _tick_status_effects(delta: float) -> void:
 	if status_effects.is_empty():
@@ -838,14 +840,37 @@ func _trigger_elite_death_effects() -> void:
 func _refresh_elite_visuals() -> void:
 	if body_shape == null or definition == null:
 		return
+	_refresh_definition_texture()
 	if elite_affixes.is_empty():
-		body_shape.color = definition.color
 		body_shape.scale = Vector2.ONE
-		body_shape.modulate = Color.WHITE
+		body_shape.modulate = _state_visual_modulate()
 		return
-	body_shape.color = definition.color.lerp(_elite_marker_color(), 0.42)
 	body_shape.scale = Vector2(1.12, 1.12)
-	body_shape.modulate = Color.WHITE
+	body_shape.modulate = _state_visual_modulate()
+
+func _refresh_definition_texture() -> void:
+	if body_sprite == null or definition == null:
+		return
+	var texture: Texture2D = definition.get("visual_texture")
+	if texture != null:
+		body_sprite.texture = texture
+
+func _state_visual_modulate() -> Color:
+	if status_effects.has(&"frostbite"):
+		return Color(0.62, 0.88, 1.35, 1.0)
+	return _base_visual_modulate()
+
+func _base_visual_modulate() -> Color:
+	if elite_affixes.is_empty():
+		return Color.WHITE
+	return Color.WHITE.lerp(_elite_marker_color(), 0.28)
+
+func _death_feedback_color() -> Color:
+	if definition == null:
+		return Color.WHITE
+	if elite_affixes.is_empty():
+		return definition.color
+	return definition.color.lerp(_elite_marker_color(), 0.42)
 
 func _elite_marker_color() -> Color:
 	var result := Color(1.0, 0.55, 0.18, 1.0)

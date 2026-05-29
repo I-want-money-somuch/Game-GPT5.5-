@@ -26,6 +26,7 @@ enum ArmorType {
 @export var attack_interval := 1.0
 @export var aggro_range := 500.0
 @export var color := Color(0.85, 0.2, 0.2)
+@export var visual_texture: Texture2D
 @export_group("Behavior")
 @export var behavior_profile: Resource
 @export_group("Boss")

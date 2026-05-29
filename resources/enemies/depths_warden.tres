@@ -5,6 +5,7 @@
 [ext_resource type="Resource" path="res://resources/boss_skill_profiles/depths_warden_skills.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/boss_mechanic_profiles/depths_warden_mechanics.tres" id="4"]
 [ext_resource type="Resource" uid="uid://6yr5wb5pqe48" path="res://resources/loot_tables/bosses/depths_warden_loot_table.tres" id="5"]
+[ext_resource type="Texture2D" path="res://assets/sprites/enemies/depths_warden.png" id="6"]
 
 [sub_resource type="Resource" id="StatBlock_depths_warden"]
 script = ExtResource("2")
@@ -27,6 +28,7 @@ attack_range = 38.0
 attack_interval = 0.95
 aggro_range = 700.0
 color = Color(0.35, 0.12, 0.62, 1)
+visual_texture = ExtResource("6")
 boss_skill_profile = ExtResource("3")
 boss_mechanic_profile = ExtResource("4")
 boss_loot_table = ExtResource("5")

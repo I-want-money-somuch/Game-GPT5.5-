@@ -2,6 +2,7 @@ class_name BossProjectile
 extends Area2D
 
 const DamagePacketScript := preload("res://scripts/combat/damage_packet.gd")
+const PROJECTILE_TEXTURE := preload("res://assets/sprites/effects/boss_projectile.png")
 
 var source: Node
 var velocity := Vector2.ZERO
@@ -10,6 +11,7 @@ var knockback_force := 100.0
 var pierce := 0
 var lifetime := 2.0
 var color := Color(0.75, 0.2, 1.0, 1.0)
+var projectile_sprite: Sprite2D
 
 func _ready() -> void:
 	add_to_group("boss_projectiles")
@@ -29,6 +31,8 @@ func configure(config: Dictionary) -> void:
 	lifetime = float(config.get("lifetime", lifetime))
 	color = config.get("color", color)
 	rotation = direction.angle()
+	if projectile_sprite != null:
+		projectile_sprite.modulate = color
 
 func _physics_process(delta: float) -> void:
 	global_position += velocity * delta
@@ -60,14 +64,13 @@ func _valid_source() -> Node:
 	return source if source != null and is_instance_valid(source) else null
 
 func _build_shape() -> void:
-	var polygon := Polygon2D.new()
-	polygon.color = color
-	polygon.polygon = PackedVector2Array([
-		Vector2(-8, -4),
-		Vector2(12, 0),
-		Vector2(-8, 4),
-	])
-	add_child(polygon)
+	var sprite := Sprite2D.new()
+	sprite.texture = PROJECTILE_TEXTURE
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.modulate = color
+	sprite.scale = Vector2(0.62, 0.62)
+	projectile_sprite = sprite
+	add_child(sprite)
 
 	var collision := CollisionShape2D.new()
 	var circle := CircleShape2D.new()
