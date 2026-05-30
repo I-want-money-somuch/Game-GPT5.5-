@@ -318,6 +318,9 @@ func _refresh_all_text() -> void:
 	var equipment_title := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/Title") as Label
 	if equipment_title != null:
 		equipment_title.text = _t("ui.equipment", "Equipment")
+	var equipment_close := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/EquipmentCloseButton") as Button
+	if equipment_close != null:
+		equipment_close.text = _t("panel.close", "Close")
 	var detail_title := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/DetailTitle") as Label
 	if detail_title != null:
 		detail_title.text = _t("panel.details", "Details")
@@ -384,21 +387,34 @@ func _on_language_option_selected(index: int) -> void:
 
 func _apply_readable_ui(node: Node) -> void:
 	for child in node.get_children():
+		var compact_panel := _is_compact_panel_node(child)
 		if child is Label:
 			var label := child as Label
-			var size := 24 if label.name.contains("Title") else 20
-			label.add_theme_font_size_override("font_size", max(label.get_theme_font_size("font_size"), size))
+			var size := 18 if compact_panel and label.name.contains("Title") else 16 if compact_panel else 24 if label.name.contains("Title") else 20
+			label.add_theme_font_size_override("font_size", size if compact_panel else max(label.get_theme_font_size("font_size"), size))
 		elif child is Button:
 			var button := child as Button
-			button.add_theme_font_size_override("font_size", max(button.get_theme_font_size("font_size"), 20))
-			button.custom_minimum_size = button.custom_minimum_size.max(Vector2(128, 44))
+			var size := 16 if compact_panel else 20
+			var minimum := Vector2(96, 34) if compact_panel else Vector2(128, 44)
+			button.add_theme_font_size_override("font_size", size if compact_panel else max(button.get_theme_font_size("font_size"), size))
+			button.custom_minimum_size = button.custom_minimum_size.max(minimum)
 		elif child is ItemList:
 			var list := child as ItemList
-			list.add_theme_font_size_override("font_size", max(list.get_theme_font_size("font_size"), 20))
+			var size := 16 if compact_panel else 20
+			list.add_theme_font_size_override("font_size", size if compact_panel else max(list.get_theme_font_size("font_size"), size))
 		elif child is RichTextLabel:
 			var rich_label := child as RichTextLabel
-			rich_label.add_theme_font_size_override("normal_font_size", max(rich_label.get_theme_font_size("normal_font_size"), 18))
+			var size := 16 if compact_panel else 18
+			rich_label.add_theme_font_size_override("normal_font_size", size if compact_panel else max(rich_label.get_theme_font_size("normal_font_size"), size))
 		_apply_readable_ui(child)
+
+func _is_compact_panel_node(node: Node) -> bool:
+	var cursor := node
+	while cursor != null:
+		if cursor == equipment_panel or cursor == forge_panel:
+			return true
+		cursor = cursor.get_parent()
+	return false
 
 func is_pickup_preview_visible_for_test() -> bool:
 	return pickup_preview_panel.visible

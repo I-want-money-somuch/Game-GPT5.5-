@@ -5,7 +5,7 @@
 [ext_resource type="Resource" path="res://resources/boss_skill_profiles/cinder_bulwark_skills.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/boss_mechanic_profiles/cinder_bulwark_mechanics.tres" id="4"]
 [ext_resource type="Resource" uid="uid://cefvvf1lfbmv0" path="res://resources/loot_tables/bosses/cinder_bulwark_loot_table.tres" id="5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/cinder_bulwark.png" id="6"]
+[ext_resource type="Texture2D" uid="uid://bpf0oe3js1qb8" path="res://assets/sprites/enemies/cinder_bulwark.png" id="6"]
 
 [sub_resource type="Resource" id="StatBlock_cinder_bulwark"]
 script = ExtResource("2")

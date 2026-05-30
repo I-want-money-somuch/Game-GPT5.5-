@@ -56,6 +56,8 @@ func interact(player: Node) -> void:
 			collision_shape.set_deferred("disabled", true)
 	label.text = _t("state.resolved", "Resolved")
 	_play_success_feedback()
+	if player != null and player.has_method("refresh_interaction_target"):
+		player.refresh_interaction_target()
 	activated.emit(self, event_definition, result)
 
 func _refresh_visuals() -> void:

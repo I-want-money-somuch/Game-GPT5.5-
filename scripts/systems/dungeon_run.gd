@@ -339,6 +339,8 @@ func _on_event_station_activated(_station: Node, event_definition: Resource, res
 		return
 	if event_definition.get("event_type") == &"trial":
 		_start_event_trial(event_definition)
+	else:
+		_unlock_exit()
 
 func _start_event_trial(event_definition: Resource) -> void:
 	if event_trial_active:
@@ -406,6 +408,8 @@ func _set_exit(available: bool) -> void:
 	if exit_point != null:
 		exit_portal.global_position = exit_point.global_position
 	exit_portal.set_available(available, "Next Room")
+	if player != null and player.has_method("refresh_interaction_target"):
+		player.refresh_interaction_target()
 
 func _reward_position() -> Vector2:
 	if reward_points.is_empty():

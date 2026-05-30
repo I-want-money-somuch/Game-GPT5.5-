@@ -231,6 +231,7 @@ func _assert_ember_pact_event() -> void:
 	var event_definition := load("res://resources/events/ember_pact.tres")
 	var main := await _start_event_room_fixture(event_definition)
 	var player = main.get_node("Player")
+	var run = main.get_node("DungeonRun")
 	var station = _find_event_station(main)
 	var weapon := load("res://resources/weapons/ember_snap.tres")
 	var before_health: float = player.health
@@ -243,6 +244,7 @@ func _assert_ember_pact_event() -> void:
 	_require(is_equal_approx(player.health, before_health - 18.0), "Ember Pact should spend current health")
 	_require(packet_after.amount > packet_before.amount * 1.14, "Ember Pact should increase run damage")
 	_require(not station.is_in_group("interactables"), "Resolved Ember Pact should become non-interactable")
+	await _assert_event_exit_advances(main, run, player, "Ember Pact")
 	main.queue_free()
 	await process_frame
 
@@ -250,6 +252,7 @@ func _assert_iron_oath_event() -> void:
 	var event_definition := load("res://resources/events/iron_oath.tres")
 	var main := await _start_event_room_fixture(event_definition)
 	var player = main.get_node("Player")
+	var run = main.get_node("DungeonRun")
 	var station = _find_event_station(main)
 	var weapon := load("res://resources/weapons/ember_snap.tres")
 	var armor = player.armor_component
@@ -264,6 +267,7 @@ func _assert_iron_oath_event() -> void:
 	_require(armor.max_armor > before_armor, "Iron Oath should increase armor for the run")
 	_require(is_equal_approx(armor.current_durability, before_durability - 25.0), "Iron Oath should spend armor durability")
 	_require(packet_after.armor_pierce >= packet_before.armor_pierce + 0.09, "Iron Oath should increase armor pierce")
+	await _assert_event_exit_advances(main, run, player, "Iron Oath")
 	main.queue_free()
 	await process_frame
 
@@ -287,8 +291,18 @@ func _assert_trial_altar_event() -> void:
 	_require(run.live_enemies.is_empty(), "Trial enemy death should clear the trial")
 	_require(run.exit_unlocked, "Trial completion should unlock the exit")
 	_require(_find_reward_chest(main) != null, "Trial completion should spawn a reward chest")
+	await _assert_event_exit_advances(main, run, player, "Trial Altar")
 	main.queue_free()
 	await process_frame
+
+func _assert_event_exit_advances(main: Node, run: Node, player: Node, label: String) -> void:
+	var exit_portal = main.get_node("ExitPortal")
+	_require(run.exit_unlocked, "%s should leave the event-room exit unlocked after completion" % label)
+	_require(exit_portal.visible and exit_portal.is_in_group("interactables"), "%s should expose an interactable exit portal" % label)
+	var before_floor: int = run.current_floor
+	player.force_interact_with(exit_portal)
+	await process_frame
+	_require(run.current_floor == before_floor + 1, "%s should allow the player to leave through the exit" % label)
 
 func _start_event_room_fixture(event_definition: Resource) -> Node:
 	var main_scene := load("res://scenes/main/Main.tscn")
@@ -589,6 +603,7 @@ func _assert_equipment_detail_ui(main: Node) -> void:
 
 	var volt := load("res://resources/weapons/volt_spear.tres")
 	_require(volt != null, "Volt Spear should load for detail UI")
+	_add_inventory_item_for_test(player, volt)
 	panel.select_item_for_test(volt)
 	var volt_detail: String = panel.get_detail_text_for_test()
 	_require(volt_detail.contains("Volt Spear"), "Selected weapon detail should show name")
@@ -600,12 +615,24 @@ func _assert_equipment_detail_ui(main: Node) -> void:
 
 	var helm := load("res://resources/equipment/ashguard_helm.tres")
 	_require(helm != null, "Ashguard Helm should load for detail UI")
+	_add_inventory_item_for_test(player, helm)
 	panel.select_item_for_test(helm)
 	var helm_detail: String = panel.get_detail_text_for_test()
 	_require(helm_detail.contains("Ashguard Helm"), "Selected equipment detail should show name")
 	_require(helm_detail.contains("Helmet"), "Selected equipment detail should show slot")
 	_require(helm_detail.contains("+10 Max Health"), "Selected equipment detail should show stat modifiers")
 	_require(forge_panel.selected_item == helm, "Forge panel should receive selected equipment from equipment panel")
+	forge_panel.set_selected_item(volt)
+	player.apply_enhancement_result(volt, {"success": false, "level": -1})
+	_require(forge_panel.selected_item == null, "Forge panel should clear a broken or removed item")
+	_require(forge_panel.forge_button.disabled, "Forge button should disable after selected item is removed")
+
+func _add_inventory_item_for_test(player: Node, item: Resource) -> void:
+	if player.inventory.has(item):
+		return
+	player.inventory.append(item)
+	player.inventory_changed.emit(player.inventory.size())
+	player.loadout_changed.emit(player.inventory, player.equipped)
 
 func _assert_pickup_preview_and_interaction(main: Node) -> void:
 	var pickup_scene := load("res://scenes/items/Pickup.tscn")
@@ -688,7 +715,9 @@ func _assert_readable_ui_thresholds(main: Node) -> void:
 	_require(hud.health_label.get_theme_font_size("font_size") >= 20, "HUD labels should use readable font sizes")
 	_require(hud.equipment_button.get_theme_font_size("font_size") >= 20, "HUD buttons should use readable font sizes")
 	_require(hud.equipment_button.custom_minimum_size.y >= 44.0, "HUD buttons should have larger touch targets")
-	_require(hud.equipment_panel.detail_text.custom_minimum_size.y >= 148.0, "Equipment detail area should be taller")
+	_require(hud.equipment_panel.detail_text.custom_minimum_size.y <= 112.0, "Equipment detail area should stay compact after the usability pass")
+	_require(hud.equipment_panel.inventory_list.auto_height == false, "Equipment inventory list should keep a fixed scrollable height")
+	_require(hud.equipment_panel.close_button != null, "Equipment panel should expose an internal close button")
 	_require(hud.pickup_preview_text.get_theme_font_size("normal_font_size") >= 18, "Pickup preview text should be readable")
 
 	var pickup_scene := load("res://scenes/items/Pickup.tscn")

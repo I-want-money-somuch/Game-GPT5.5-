@@ -5,7 +5,7 @@
 [ext_resource type="Resource" path="res://resources/boss_skill_profiles/depths_warden_skills.tres" id="3"]
 [ext_resource type="Resource" path="res://resources/boss_mechanic_profiles/depths_warden_mechanics.tres" id="4"]
 [ext_resource type="Resource" uid="uid://6yr5wb5pqe48" path="res://resources/loot_tables/bosses/depths_warden_loot_table.tres" id="5"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/depths_warden.png" id="6"]
+[ext_resource type="Texture2D" uid="uid://c2r5gdb1764c0" path="res://assets/sprites/enemies/depths_warden.png" id="6"]
 
 [sub_resource type="Resource" id="StatBlock_depths_warden"]
 script = ExtResource("2")

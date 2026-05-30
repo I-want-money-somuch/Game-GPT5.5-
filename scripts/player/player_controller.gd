@@ -154,6 +154,9 @@ func force_interact_with(interactable: Node) -> void:
 		interactable.interact(self)
 		_refresh_interactable_prompt()
 
+func refresh_interaction_target() -> void:
+	_refresh_interactable_prompt()
+
 func equip_weapon(weapon: Resource) -> void:
 	active_weapon = weapon
 	weapon_changed.emit(active_weapon)

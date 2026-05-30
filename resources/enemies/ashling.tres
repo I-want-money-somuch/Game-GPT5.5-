@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
 [ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
 [ext_resource type="Resource" path="res://resources/enemy_behaviors/ashling_behavior.tres" id="3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/ashling.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://buknej7ctdxpn" path="res://assets/sprites/enemies/ashling.png" id="4"]
 
 [sub_resource type="Resource" id="StatBlock_ashling"]
 script = ExtResource("2")

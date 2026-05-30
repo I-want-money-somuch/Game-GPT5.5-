@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cj3x3n28pnsb0" path="res://scripts/resources/enemy_definition.gd" id="1"]
 [ext_resource type="Script" uid="uid://buavvtuo3d84c" path="res://scripts/resources/stat_block.gd" id="2"]
 [ext_resource type="Resource" path="res://resources/enemy_behaviors/glassmite_behavior.tres" id="3"]
-[ext_resource type="Texture2D" path="res://assets/sprites/enemies/glassmite.png" id="4"]
+[ext_resource type="Texture2D" uid="uid://cw746nfh8jssv" path="res://assets/sprites/enemies/glassmite.png" id="4"]
 
 [sub_resource type="Resource" id="StatBlock_glassmite"]
 script = ExtResource("2")

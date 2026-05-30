@@ -11,6 +11,7 @@ var localization_service: Node
 
 @onready var inventory_list: ItemList = %InventoryList
 @onready var equip_button: Button = %EquipButton
+@onready var close_button: Button = %EquipmentCloseButton
 @onready var weapon_label: Label = %CurrentWeaponLabel
 @onready var helmet_label: Label = %HelmetLabel
 @onready var chest_label: Label = %ChestLabel
@@ -23,6 +24,7 @@ var localization_service: Node
 func _ready() -> void:
 	inventory_list.item_selected.connect(_on_inventory_item_selected)
 	equip_button.pressed.connect(_on_equip_pressed)
+	close_button.pressed.connect(func() -> void: visible = false)
 	equip_button.disabled = true
 
 func bind_player(target_player: Node) -> void:

@@ -62,6 +62,7 @@ const STRINGS := {
 	"settings.title": {"en": "Settings", "zh_CN": "设置"},
 	"settings.language": {"en": "Language", "zh_CN": "语言"},
 	"panel.details": {"en": "Details", "zh_CN": "详情"},
+	"panel.close": {"en": "Close", "zh_CN": "关闭"},
 	"panel.equip": {"en": "Equip", "zh_CN": "装备"},
 	"panel.equip_weapon": {"en": "Equip Weapon", "zh_CN": "装备武器"},
 	"panel.pickup_compare": {"en": "Pickup Compare", "zh_CN": "拾取对比"},

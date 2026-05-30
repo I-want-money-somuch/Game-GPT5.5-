@@ -41,15 +41,23 @@ func set_selected_item(item: Resource) -> void:
 func _on_forge_pressed() -> void:
 	if player == null or enhancement_service == null or selected_item == null:
 		return
+	if not _player_has_item(selected_item):
+		selected_item = null
+		_refresh()
+		return
 
 	var current_level: int = player.get_enhancement_level(selected_item)
 	var result: Dictionary = enhancement_service.attempt(current_level)
 	player.apply_enhancement_result(selected_item, result)
+	if not _player_has_item(selected_item):
+		selected_item = null
 	if feedback_service != null and feedback_service.has_method("forge_result"):
 		feedback_service.forge_result(bool(result.get("success", false)))
 	_refresh()
 
 func _refresh() -> void:
+	if selected_item != null and player != null and not _player_has_item(selected_item):
+		selected_item = null
 	if selected_item == null or player == null:
 		selected_label.text = _t("forge.selected_empty", "Selected: -")
 		level_label.text = _t("forge.level_empty", "Level: -")
@@ -74,6 +82,18 @@ func _refresh() -> void:
 	chance_label.text = _lf("forge.chance", [roundi(chance * 100.0)], "Chance: %d%%")
 	outcome_label.text = _lf("forge.fail", [_failure_name(failure)], "Fail: %s")
 	forge_button.text = _t("forge.enhance", "Enhance")
+
+func _player_has_item(item: Resource) -> bool:
+	if player == null or item == null:
+		return false
+	if player.inventory.has(item):
+		return true
+	if player.active_weapon == item:
+		return true
+	for equipped_item in player.equipped.values():
+		if equipped_item == item:
+			return true
+	return false
 
 func _failure_name(value: int) -> String:
 	match value:

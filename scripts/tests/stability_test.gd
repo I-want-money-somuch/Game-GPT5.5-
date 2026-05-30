@@ -253,6 +253,7 @@ func _assert_event_one_shot() -> void:
 	_require(is_equal_approx(after_first, before_health - 18.0), "One-shot event should apply its cost once")
 	_require(is_equal_approx(player.health, after_first), "Repeating a resolved event should not apply cost twice")
 	_require(not station.is_in_group("interactables"), "Resolved one-shot event should leave the interactable group")
+	await _assert_event_exit_advances(fixture, "Resolved one-shot event")
 	_cleanup_event_fixture(fixture)
 
 func _assert_trial_event_flow() -> void:
@@ -284,7 +285,20 @@ func _assert_trial_event_flow() -> void:
 	station.interact(player)
 	await process_frame
 	_require(_count_reward_chests(main) == 1, "Resolved Trial Altar should not spawn duplicate chests")
+	await _assert_event_exit_advances(fixture, "Resolved Trial Altar")
 	_cleanup_event_fixture(fixture)
+
+func _assert_event_exit_advances(fixture: Dictionary, label: String) -> void:
+	var main = fixture["main"]
+	var run = fixture["run"]
+	var player = fixture["player"]
+	var exit_portal = main.get_node("ExitPortal")
+	_require(run.exit_unlocked, "%s should leave the event-room exit unlocked after completion" % label)
+	_require(exit_portal.visible and exit_portal.is_in_group("interactables"), "%s should expose an interactable exit portal" % label)
+	var before_floor: int = run.current_floor
+	player.force_interact_with(exit_portal)
+	await process_frame
+	_require(run.current_floor == before_floor + 1, "%s should allow exit interaction after completion" % label)
 
 func _assert_fire_burst_effect() -> void:
 	var fixture := await _spawn_affix_fixture(3)
