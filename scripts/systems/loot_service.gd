@@ -16,6 +16,9 @@ func configure(table: Resource, scene: PackedScene, parent: Node) -> void:
 	pickup_scene = scene
 	pickup_parent = parent
 
+func set_run_seed(seed_value: int) -> void:
+	rng.seed = _derive_seed(seed_value)
+
 func drop_for_enemy(enemy_definition: Resource, at_position: Vector2, floor: int) -> void:
 	if loot_table == null or pickup_scene == null or pickup_parent == null:
 		return
@@ -59,3 +62,6 @@ func _loot_table_for_source(source_definition: Resource) -> Resource:
 	if source_definition != null and source_definition.get("boss_loot_table") != null:
 		return source_definition.get("boss_loot_table")
 	return loot_table
+
+func _derive_seed(seed_value: int) -> int:
+	return absi(seed_value * 31 + 7919)

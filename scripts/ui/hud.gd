@@ -3,7 +3,7 @@ extends CanvasLayer
 
 const ItemDetailFormatterScript := preload("res://scripts/ui/item_detail_formatter.gd")
 
-signal start_run_requested
+signal start_run_requested(seed_text: String)
 signal reset_save_requested
 signal talent_purchase_requested(talent_id: StringName)
 signal camp_requested
@@ -14,6 +14,7 @@ signal language_selected(language: String)
 @onready var health_label: Label = %HealthLabel
 @onready var armor_label: Label = %ArmorLabel
 @onready var floor_label: Label = %FloorLabel
+@onready var run_seed_label: Label = %RunSeedLabel
 @onready var weapon_label: Label = %WeaponLabel
 @onready var inventory_label: Label = %InventoryLabel
 @onready var message_label: Label = %MessageLabel
@@ -32,6 +33,9 @@ signal language_selected(language: String)
 @onready var main_menu_overlay: Control = %MainMenuOverlay
 @onready var menu_currency_label: Label = %MenuCurrencyLabel
 @onready var menu_last_run_label: Label = %MenuLastRunLabel
+@onready var seed_input_label: Label = %SeedInputLabel
+@onready var seed_line_edit: LineEdit = %SeedLineEdit
+@onready var random_seed_button: Button = %RandomSeedButton
 @onready var start_run_button: Button = %StartRunButton
 @onready var reset_save_button: Button = %ResetSaveButton
 @onready var menu_settings_button: Button = %MenuSettingsButton
@@ -57,6 +61,7 @@ var current_max_armor := 0.0
 var current_weapon: Resource
 var current_inventory_count := 0
 var current_floor := 1
+var current_run_seed := 0
 var current_room_type := ""
 var current_interactable: Node
 var last_run_end_mode := ""
@@ -65,9 +70,11 @@ var last_run_end_body_key := ""
 var last_run_end_stats := {}
 var last_run_end_rewards := {}
 var language_option_refreshing := false
+var seed_rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	seed_rng.randomize()
 	_apply_readable_ui($Root)
 	equipment_panel.visible = false
 	forge_panel.visible = false
@@ -79,7 +86,8 @@ func _ready() -> void:
 	equipment_button.pressed.connect(func() -> void: equipment_panel.visible = not equipment_panel.visible)
 	forge_button.pressed.connect(func() -> void: forge_panel.visible = not forge_panel.visible if not forge_button.disabled else false)
 	retry_button.pressed.connect(func() -> void: camp_requested.emit())
-	start_run_button.pressed.connect(func() -> void: start_run_requested.emit())
+	start_run_button.pressed.connect(func() -> void: start_run_requested.emit(seed_line_edit.text))
+	random_seed_button.pressed.connect(_on_random_seed_pressed)
 	reset_save_button.pressed.connect(func() -> void: reset_save_requested.emit())
 	settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	menu_settings_button.pressed.connect(func() -> void: settings_requested.emit())
@@ -199,6 +207,7 @@ func _on_room_started(floor: int, room_type: String) -> void:
 	current_floor = floor
 	current_room_type = room_type
 	floor_label.text = "%s %d/10" % [_t("ui.floor", "Floor"), floor]
+	_refresh_run_seed_label()
 	message_label.text = _t("room_type.%s" % room_type, room_type.capitalize().replace("_", " "))
 	run_end_overlay.visible = false
 	main_menu_overlay.visible = false
@@ -236,6 +245,7 @@ func show_run_end_summary(title_key: String, stats: Dictionary, rewards: Diction
 
 func _render_run_end_summary() -> void:
 	var body := PackedStringArray()
+	body.append(_lf("run.summary.seed", [int(last_run_end_stats.get("seed", 0))], "Seed: %d"))
 	body.append(_lf("run.summary.highest", [int(last_run_end_stats.get("highest_floor", 1)), int(last_run_end_stats.get("rooms_cleared", 0))], "Highest Floor: %d   Rooms Cleared: %d"))
 	body.append(_lf("run.summary.kills", [int(last_run_end_stats.get("kills", 0)), int(last_run_end_stats.get("elites", 0)), int(last_run_end_stats.get("mini_boss", 0)), int(last_run_end_stats.get("final_boss", 0))], "Kills: %d   Elites: %d   Mini Boss: %d   Final Boss: %d"))
 	body.append("")
@@ -260,6 +270,8 @@ func show_main_menu() -> void:
 	forge_panel.visible = false
 	pickup_preview_panel.visible = false
 	message_label.text = _t("ui.camp", "Camp")
+	current_run_seed = 0
+	_refresh_run_seed_label()
 
 func hide_main_menu() -> void:
 	main_menu_overlay.visible = false
@@ -302,18 +314,22 @@ func _last_run_text(last_run) -> String:
 	var stats: Dictionary = last_run.get("stats", {})
 	var rewards: Dictionary = last_run.get("rewards", {})
 	return _lf("camp.last_run", [
+		int(stats.get("seed", 0)),
 		int(stats.get("highest_floor", 1)),
 		int(stats.get("rooms_cleared", 0)),
 		int(rewards.get("gold", 0)),
 		int(rewards.get("souls", 0)),
 		int(rewards.get("talent_points", 0)),
-	], "Last Run: Floor %d, Rooms %d, Gold +%d, Souls +%d, TP +%d")
+	], "Last Run: Seed %d, Floor %d, Rooms %d, Gold +%d, Souls +%d, TP +%d")
 
 func _refresh_all_text() -> void:
 	equipment_button.text = _t("ui.equipment", "Equipment")
 	forge_button.text = _t("ui.forge_locked", "Forge Locked") if forge_button.disabled else _t("ui.forge", "Forge")
 	settings_button.text = _t("ui.settings", "Settings")
 	menu_settings_button.text = _t("ui.settings", "Settings")
+	seed_input_label.text = _t("camp.seed", "Run Seed")
+	seed_line_edit.placeholder_text = _t("camp.seed_placeholder", "Blank = random")
+	random_seed_button.text = _t("camp.random_seed", "Random")
 	start_run_button.text = _t("camp.start_run", "Start Run")
 	reset_save_button.text = _t("camp.reset_save", "Reset Save")
 	settings_title_label.text = _t("settings.title", "Settings")
@@ -349,6 +365,7 @@ func _refresh_all_text() -> void:
 	else:
 		floor_label.text = "%s %d/10" % [_t("ui.floor", "Floor"), current_floor]
 		message_label.text = _t("room_type.%s" % current_room_type, current_room_type.capitalize().replace("_", " "))
+	_refresh_run_seed_label()
 	_refresh_current_interactable_text()
 	refresh_meta_progression()
 	if equipment_panel.has_method("refresh_for_language"):
@@ -440,6 +457,24 @@ func get_language_option_code_for_test() -> String:
 	if selected < 0:
 		return ""
 	return str(language_option.get_item_metadata(selected))
+
+func set_current_run_seed(seed: int) -> void:
+	current_run_seed = seed
+	_refresh_run_seed_label()
+
+func _refresh_run_seed_label() -> void:
+	if run_seed_label == null:
+		return
+	run_seed_label.text = _lf("ui.seed", [current_run_seed], "Seed: %d") if current_run_seed > 0 else ""
+
+func _on_random_seed_pressed() -> void:
+	seed_line_edit.text = str(seed_rng.randi_range(100000, 999999999))
+
+func set_seed_text_for_test(value: String) -> void:
+	seed_line_edit.text = value
+
+func get_seed_text_for_test() -> String:
+	return seed_line_edit.text
 
 func _t(key: String, fallback := "") -> String:
 	if localization_service != null and localization_service.has_method("text"):

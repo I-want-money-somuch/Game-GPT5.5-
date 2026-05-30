@@ -31,8 +31,10 @@ var player_start: Marker2D
 var exit_point: Marker2D
 var exit_portal: Node
 var room_sequence: Array = []
+var room_pool: Array = []
 var current_room_definition: Resource
 var current_floor := 1
+var current_run_seed := 0
 var live_enemies: Array = []
 var exit_unlocked := false
 var room_rewarded := false
@@ -69,16 +71,21 @@ func configure(config: Dictionary) -> void:
 	player_start = config.get("player_start")
 	exit_point = config.get("exit_point")
 	exit_portal = config.get("exit_portal")
-	room_sequence = config.get("room_sequence", [])
+	room_pool = config.get("room_sequence", [])
+	room_sequence = room_pool.duplicate()
 
 	if exit_portal != null and exit_portal.has_signal("activated"):
 		var advance_callable := Callable(self, "advance_to_next_room")
 		if not exit_portal.activated.is_connected(advance_callable):
 			exit_portal.activated.connect(advance_callable)
 
-func start_run() -> void:
+func start_run(seed_value := 0) -> void:
 	run_active = true
 	current_floor = 1
+	current_run_seed = _normalize_seed(seed_value)
+	rng.seed = current_run_seed
+	room_sequence = _generate_room_sequence()
+	max_floor = room_sequence.size()
 	_start_current_room()
 
 func advance_to_next_room() -> void:
@@ -133,6 +140,44 @@ func _room_definition_for_floor(floor: int) -> Resource:
 	if not room_sequence.is_empty():
 		return room_sequence[clampi(floor - 1, 0, room_sequence.size() - 1)]
 	return null
+
+func _generate_room_sequence() -> Array:
+	var combat := _room_definition_for_id(&"combat_room")
+	var treasure := _room_definition_for_id(&"treasure_room")
+	var elite := _room_definition_for_id(&"elite_room")
+	var mini_boss := _room_definition_for_id(&"mini_boss_room")
+	var forge := _room_definition_for_id(&"forge_room")
+	var event := _room_definition_for_id(&"event_room")
+	var boss := _room_definition_for_id(&"boss_room")
+	var generated := []
+	generated.append(combat)
+	generated.append_array(_shuffled_rooms([combat, treasure, elite]))
+	generated.append(mini_boss)
+	generated.append_array(_shuffled_rooms([forge, event, elite, treasure]))
+	generated.append(boss)
+	return generated.filter(func(room) -> bool: return room != null)
+
+func _shuffled_rooms(rooms: Array) -> Array:
+	var result := rooms.duplicate()
+	for index in range(result.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, index)
+		var temp = result[index]
+		result[index] = result[swap_index]
+		result[swap_index] = temp
+	return result
+
+func _room_definition_for_id(room_id: StringName) -> Resource:
+	for definition in room_pool:
+		if definition != null and definition.get("id") == room_id:
+			return definition
+	return null
+
+func _normalize_seed(seed_value) -> int:
+	var parsed := int(seed_value)
+	if parsed <= 0:
+		rng.randomize()
+		parsed = rng.randi_range(100000, 999999999)
+	return parsed
 
 func _spawn_plans_for_current_room() -> Array:
 	if current_room_definition == null:
@@ -441,3 +486,23 @@ func _clear_room_state() -> void:
 
 func force_next_event_for_test(event_definition: Resource) -> void:
 	forced_event_definition_for_test = event_definition
+
+func room_sequence_ids_for_test() -> Array:
+	var ids := []
+	for definition in room_sequence:
+		ids.append(definition.get("id") if definition != null else &"")
+	return ids
+
+func floor_for_room_id_for_test(room_id: StringName) -> int:
+	for index in range(room_sequence.size()):
+		var definition: Resource = room_sequence[index]
+		if definition != null and definition.get("id") == room_id:
+			return index + 1
+	return -1
+
+func floor_for_room_type_for_test(room_type: int) -> int:
+	for index in range(room_sequence.size()):
+		var definition: Resource = room_sequence[index]
+		if definition != null and int(definition.get("room_type")) == room_type:
+			return index + 1
+	return -1

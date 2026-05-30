@@ -45,6 +45,17 @@ offset_bottom = 98.0
 theme_override_font_sizes/font_size = 18
 text = "Floor"
 
+[node name="RunSeedLabel" type="Label" parent="Root"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 520.0
+offset_top = 72.0
+offset_right = 946.0
+offset_bottom = 98.0
+theme_override_font_sizes/font_size = 18
+text = ""
+horizontal_alignment = 2
+
 [node name="WeaponLabel" type="Label" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 0
@@ -491,35 +502,61 @@ text = "Permanent Talents"
 
 [node name="VitalCoreButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Vital Core"
 
 [node name="ReinforcedPlatingButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Reinforced Plating"
 
 [node name="WeaponTrainingButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Weapon Training"
 
 [node name="ScavengerInstinctButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 58)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 text = "Scavenger Instinct"
 
+[node name="SeedRow" type="HBoxContainer" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="SeedInputLabel" type="Label" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer/SeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(120, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Run Seed"
+
+[node name="SeedLineEdit" type="LineEdit" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer/SeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+placeholder_text = "Blank = random"
+
+[node name="RandomSeedButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer/SeedRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(110, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Random"
+
 [node name="StartRunButton" type="Button" parent="Root/MainMenuOverlay/Panel/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 46)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Start Run"

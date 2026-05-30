@@ -9,7 +9,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Fourteen equipment definitions
 - Three normal enemies
 - One mini boss and one boss
-- Ten-floor run director
+- Seeded ten-floor run director
 - Data-driven loot, armor, and enhancement foundations
 - LAN-ready session wrapper using Godot ENet for a later co-op pass
 - Boss-specific loot tables, skill profiles, and mechanic profiles
@@ -19,6 +19,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Original 32px pixel placeholder art for core actors, interactables, projectiles, and the dungeon floor
 - Void arcana build drops with echo and gravity weapon affixes
 - Equipment UI v2 with filtering, sorting, slot inspection, and explicit forge handoff
+- Manual or automatic run seeds for repeatable room/event/drop paths
 
 ## Architecture goals
 
@@ -43,6 +44,7 @@ Controls:
 - Equipment panel: `Equipment` button, with filters, sorting, equipment slots, and comparison details
 - Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
 - Exit room: press `E` at the portal after the room is clear
+- Run seed: leave the camp seed field blank for a random seed, or enter an integer to replay the room/event/drop path
 
 ## Meta progression
 
@@ -61,19 +63,14 @@ The camp menu includes four permanent talents:
 
 Profile data is saved to `user://profile_v1.json`.
 
-## Current room sequence
+## Current room pacing
 
-The MVP run uses ten data-driven rooms:
+The MVP run generates ten data-driven rooms from the active seed:
 
 1. Combat
-2. Combat
-3. Treasure
-4. Elite
+2-4. One each: Combat, Treasure, Elite
 5. Mini boss
-6. Forge
-7. Event
-8. Elite
-9. Treasure
+6-9. One each: Forge, Event, Elite, Treasure
 10. Boss
 
 Bosses now use dedicated loot tables and skill/mechanic profiles. Current examples:

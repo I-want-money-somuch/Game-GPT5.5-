@@ -39,9 +39,9 @@ Boss loot is awarded through reward chests, not corpse drops. This keeps room co
 
 ## Dungeon flow
 
-Rooms are defined as `RoomDefinition` resources under `resources/dungeon/`. `DungeonRun` consumes a room sequence, applies the current room through `RoomPresenter`, spawns encounters when required, spawns interactable reward chests, and unlocks `ExitPortal` when the room reward flow is complete.
+Rooms are defined as `RoomDefinition` resources under `resources/dungeon/`. `DungeonRun` builds a seeded ten-floor room sequence, applies the current room through `RoomPresenter`, spawns encounters when required, spawns interactable reward chests, and unlocks `ExitPortal` when the room reward flow is complete.
 
-The current vertical slice is intentionally deterministic:
+The current vertical slice uses seed-driven pacing:
 
 - Combat rooms teach the baseline fight loop.
 - Treasure rooms spawn guaranteed reward chests.
@@ -60,18 +60,16 @@ Event stations use the same protocol as reward chests, forge stations, and exit 
 
 ## Meta progression flow
 
-The game starts in the HUD camp overlay. Starting a run applies permanent talent modifiers to the player and enemy drop chance, then starts the deterministic dungeon sequence. Death and final victory both settle the run once, award permanent profile resources, save the profile, and return the player to camp.
+The game starts in the HUD camp overlay. Starting a run applies permanent talent modifiers to the player and enemy drop chance, resolves the manual or automatic run seed, then starts the seeded dungeon sequence. Death and final victory both settle the run once, award permanent profile resources, save the profile, and return the player to camp.
 
 ## MVP content target
 
-The first playable slice is scoped to ten rooms:
+The first playable slice is scoped to ten seeded rooms:
 
-- Rooms 1 and 2: combat
-- Room 7: event
-- Rooms 3 and 9: treasure
-- Rooms 4 and 8: elite
+- Room 1: combat
+- Rooms 2-4: one combat, one treasure, one elite
 - Room 5: mini boss
-- Room 6: forge
+- Rooms 6-9: one forge, one event, one elite, one treasure
 - Room 10: boss
 
-The dungeon generator starts as a room-sequence director. Template rooms and graph generation can be added after the combat, drops, and build loop feel good.
+The dungeon generator starts as a seeded room-sequence director. Template rooms, graph routing, and route-choice UI can be added after the combat, drops, and build loop feel good.

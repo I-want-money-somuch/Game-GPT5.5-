@@ -16,6 +16,7 @@ func _run() -> void:
 	await _assert_weapon_affix_effect_runtime()
 	await _assert_event_room_runtime()
 	await _assert_settings_pause_runtime()
+	await _assert_seeded_random_runtime()
 	await _assert_equipment_forge_runtime()
 	await _assert_boss_room_regression(5, &"cinder_bulwark", [&"cinderplate_core", &"bulwark_ember_ring"], false)
 	await _assert_boss_room_regression(10, &"depths_warden", [&"warden_rift_staff", &"abyssal_guard_helm"], true)
@@ -72,7 +73,9 @@ func _assert_freed_damage_sources_are_safe() -> void:
 func _assert_elite_room_cadence() -> void:
 	var main := await _instantiate_main()
 	var run = main.get_node("DungeonRun")
-	run.current_floor = 4
+	var elite_floor: int = run.floor_for_room_id_for_test(&"elite_room")
+	_require(elite_floor > 0, "Elite cadence fixture should locate a generated elite room")
+	run.current_floor = elite_floor
 	run._start_current_room()
 	await process_frame
 	var elite_count := 0
@@ -220,6 +223,86 @@ func _assert_settings_pause_runtime() -> void:
 	_cleanup_runtime_nodes()
 	await process_frame
 
+func _assert_seeded_random_runtime() -> void:
+	for seed in range(1001, 1021):
+		var main := await _instantiate_main(str(seed))
+		var ids: Array = main.get_node("DungeonRun").room_sequence_ids_for_test()
+		_assert_seeded_room_rules(ids, "Seed %d" % seed)
+		main.queue_free()
+		_cleanup_runtime_nodes()
+		await process_frame
+
+	var first_sequence := await _room_sequence_for_seed("314159")
+	var second_sequence := await _room_sequence_for_seed("314159")
+	_require(first_sequence == second_sequence, "Same seed should preserve the room sequence across instances")
+	var first_event := await _event_id_for_seed("314159")
+	var second_event := await _event_id_for_seed("314159")
+	_require(first_event == second_event, "Same seed should preserve event-room event choice")
+	var first_loot := await _treasure_loot_ids_for_seed("271828")
+	var second_loot := await _treasure_loot_ids_for_seed("271828")
+	_require(first_loot == second_loot, "Same seed should preserve guaranteed treasure chest loot")
+
+func _room_sequence_for_seed(seed_text: String) -> Array:
+	var main := await _instantiate_main(seed_text)
+	var ids: Array = main.get_node("DungeonRun").room_sequence_ids_for_test()
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
+	return ids
+
+func _event_id_for_seed(seed_text: String) -> StringName:
+	var main := await _instantiate_main(seed_text)
+	var run = main.get_node("DungeonRun")
+	var event_floor: int = run.floor_for_room_id_for_test(&"event_room")
+	run.current_floor = event_floor
+	run._start_current_room()
+	await process_frame
+	var station = _find_event_station(main)
+	var event_id: StringName = station.event_definition.id if station != null and station.event_definition != null else &""
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
+	return event_id
+
+func _treasure_loot_ids_for_seed(seed_text: String) -> Array:
+	var main := await _instantiate_main(seed_text)
+	var run = main.get_node("DungeonRun")
+	var player = main.get_node("Player")
+	var treasure_floor: int = run.floor_for_room_id_for_test(&"treasure_room")
+	run.current_floor = treasure_floor
+	run._start_current_room()
+	await process_frame
+	var chest = _find_reward_chest(main)
+	_require(chest != null, "Seeded treasure fixture should spawn a reward chest")
+	chest.interact(player)
+	await process_frame
+	var ids := []
+	for pickup in main.get_node("Pickups").get_children():
+		var item = pickup.get("item_definition")
+		if item != null:
+			ids.append(item.get("id"))
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
+	return ids
+
+func _assert_seeded_room_rules(ids: Array, label: String) -> void:
+	_require(ids.size() == 10, "%s should generate ten rooms" % label)
+	_require(ids[0] == &"combat_room", "%s floor 1 should be Combat" % label)
+	_require(ids[4] == &"mini_boss_room", "%s floor 5 should be Mini Boss" % label)
+	_require(ids[9] == &"boss_room", "%s floor 10 should be Boss" % label)
+	_require(_ids_contain_all(ids, 1, 3, [&"combat_room", &"treasure_room", &"elite_room"]), "%s floors 2-4 should contain Combat/Treasure/Elite" % label)
+	_require(_ids_contain_all(ids, 5, 8, [&"forge_room", &"event_room", &"elite_room", &"treasure_room"]), "%s floors 6-9 should contain Forge/Event/Elite/Treasure" % label)
+
+func _ids_contain_all(ids: Array, start_index: int, end_index: int, expected: Array) -> bool:
+	var present := []
+	for index in range(start_index, end_index + 1):
+		present.append(ids[index])
+	for id in expected:
+		if not present.has(id):
+			return false
+	return true
+
 func _assert_equipment_forge_runtime() -> void:
 	var main := await _instantiate_main()
 	var run = main.get_node("DungeonRun")
@@ -228,7 +311,9 @@ func _assert_equipment_forge_runtime() -> void:
 	var equipment_panel = hud.equipment_panel
 	var forge_panel = hud.forge_panel
 
-	run.current_floor = 6
+	var forge_floor: int = run.floor_for_room_id_for_test(&"forge_room")
+	_require(forge_floor >= 6 and forge_floor <= 9, "Equipment forge fixture should locate the generated forge room")
+	run.current_floor = forge_floor
 	run._start_current_room()
 	await process_frame
 	_require(run.current_room_definition.id == &"forge_room", "Equipment forge fixture should enter the forge room")
@@ -737,7 +822,7 @@ func _pickup_ids_include(main: Node, expected_ids: Array) -> bool:
 			return true
 	return false
 
-func _instantiate_main() -> Node:
+func _instantiate_main(seed_text := "424242") -> Node:
 	var main_scene := load("res://scenes/main/Main.tscn")
 	_require(main_scene != null, "Main scene should load")
 	var main = main_scene.instantiate()
@@ -745,7 +830,7 @@ func _instantiate_main() -> Node:
 	await process_frame
 	main.configure_settings_path_for_test("user://stability_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://stability_profile_v002.json", true)
-	main.start_run_for_test()
+	main.start_run_for_test(seed_text)
 	await process_frame
 	return main
 
@@ -834,12 +919,14 @@ func _spawn_affix_fixture(enemy_count: int) -> Dictionary:
 func _spawn_event_fixture(event_definition: Resource) -> Dictionary:
 	var main := await _instantiate_main()
 	var run = main.get_node("DungeonRun")
-	run.current_floor = 7
+	var event_floor: int = run.floor_for_room_id_for_test(&"event_room")
+	_require(event_floor >= 6 and event_floor <= 9, "Event fixture should locate the generated event room")
+	run.current_floor = event_floor
 	run.force_next_event_for_test(event_definition)
 	run._start_current_room()
 	await process_frame
 	var station = _find_event_station(main)
-	_require(run.current_room_definition.id == &"event_room", "Event fixture should use floor seven event room")
+	_require(run.current_room_definition.id == &"event_room", "Event fixture should use the generated event room")
 	_require(station != null, "Event fixture should spawn an event station")
 	return {
 		"main": main,

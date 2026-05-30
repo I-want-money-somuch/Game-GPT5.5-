@@ -21,18 +21,23 @@ func _run() -> void:
 	await process_frame
 	var run = main.get_node("DungeonRun")
 	var player_main = main.get_node("Player")
+	var hud_main = main.get_node("HUD")
 	_require(main.get_node("HUD").main_menu_overlay.visible, "Main scene should start at the camp menu")
 	_require(not run.run_active, "Dungeon run should not start before Start Run")
 	_require(not player_main.input_enabled, "Player input should be disabled at camp")
+	_require(hud_main.seed_line_edit != null, "Camp menu should expose a run seed input")
 	await _assert_settings_menu_localization(main)
 	_assert_localization_coverage(main.get_node("LocalizationService"))
 	_assert_player_mouse_facing(player_main)
 	_assert_meta_menu_and_talents(main)
+	await _assert_seeded_room_generation()
 	main.start_run_for_test()
 	await process_frame
 	await _assert_sprite_scene_visuals(main)
 	_require(run.current_room_definition != null, "Run should start in a room definition")
 	_require(run.current_room_definition.id == &"combat_room", "Run should start in combat room")
+	_require(run.current_run_seed > 0, "Blank seed should generate a positive run seed")
+	_require(hud_main.run_seed_label.text.contains("Seed:"), "HUD should show the active run seed")
 	_require(player_main.max_health >= 130.0, "Vital Core should increase starting health")
 	_require(player_main.armor_component.max_armor >= 16.0, "Reinforced Plating should increase armor")
 	_require(main.get_node("LootService").enemy_drop_chance_bonus >= 0.03, "Scavenger Instinct should increase enemy drop chance")
@@ -66,10 +71,12 @@ func _run() -> void:
 	await process_frame
 	_require(run.current_floor == 2, "Interacting with unlocked exit should advance one floor")
 
-	run.current_floor = 6
+	var forge_floor: int = run.floor_for_room_id_for_test(&"forge_room")
+	_require(forge_floor >= 6 and forge_floor <= 9, "Generated sequence should include a forge room between floors 6 and 9")
+	run.current_floor = forge_floor
 	run._start_current_room()
 	await process_frame
-	_require(run.current_room_definition.id == &"forge_room", "Floor six should be the forge room")
+	_require(run.current_room_definition.id == &"forge_room", "Generated forge floor should be the forge room")
 	_require(interactables.get_child_count() == 1, "Forge room should spawn one forge station")
 	var station = interactables.get_child(0)
 	station.interact(main.get_node("Player"))
@@ -77,12 +84,18 @@ func _run() -> void:
 	_require(main.get_node("HUD").forge_panel.visible == true, "Forge station interaction should open forge UI")
 	run.advance_to_next_room()
 	await process_frame
-	_require(run.current_floor == 7, "Leaving forge room should advance to the event room")
-	_require(run.current_room_definition.id == &"event_room", "Floor seven should be the event room")
-	_require(_find_event_station(main) != null, "Event room should spawn one event station")
-	_require(main.get_node("ExitPortal").visible == true, "Event room should unlock the exit by default")
+	_require(run.current_floor == forge_floor + 1, "Leaving forge room should advance one floor")
 	_require(main.get_node("HUD").forge_panel.visible == false, "Leaving forge room should close forge UI")
 	_require(main.get_node("HUD").forge_button.disabled == true, "Leaving forge room should lock forge UI")
+
+	var event_floor: int = run.floor_for_room_id_for_test(&"event_room")
+	_require(event_floor >= 6 and event_floor <= 9, "Generated sequence should include an event room between floors 6 and 9")
+	run.current_floor = event_floor
+	run._start_current_room()
+	await process_frame
+	_require(run.current_room_definition.id == &"event_room", "Generated event floor should be the event room")
+	_require(_find_event_station(main) != null, "Event room should spawn one event station")
+	_require(main.get_node("ExitPortal").visible == true, "Event room should unlock the exit by default")
 
 	run.current_floor = 10
 	run._start_current_room()
@@ -202,7 +215,7 @@ func _assert_player_death_state() -> void:
 	await process_frame
 	main.configure_settings_path_for_test("user://smoke_death_settings_v006.json", true)
 	main.configure_profile_path_for_test("user://smoke_death_profile_v002.json", true)
-	main.start_run_for_test()
+	main.start_run_for_test("77777")
 	await process_frame
 	var player = main.get_node("Player")
 	var run = main.get_node("DungeonRun")
@@ -216,12 +229,70 @@ func _assert_player_death_state() -> void:
 	_require(not player.input_enabled, "Fatal damage should disable player input")
 	_require(not run.run_active, "Fatal damage should stop the active dungeon run")
 	_require(main.get_node("HUD").run_end_overlay.visible == true, "Fatal damage should show the death overlay")
+	_require(main.get_node("HUD").run_end_body.text.contains("77777"), "Run summary should include the run seed")
 	_require(int(meta.profile_snapshot().get("souls", 0)) >= 1, "Fatal damage should still award souls")
 	_require(int(meta.profile_snapshot().get("talent_points", 0)) >= 1, "Fatal damage should still award talent points")
 	main.back_to_camp_for_test()
 	_require(main.get_node("HUD").main_menu_overlay.visible == true, "Back to Camp should return to the main menu")
+	_require(main.get_node("HUD").menu_last_run_label.text.contains("77777"), "Last run text should include the run seed")
 	main.queue_free()
 	await process_frame
+
+func _assert_seeded_room_generation() -> void:
+	var first := await _start_seeded_main("24680")
+	var first_run = first.get_node("DungeonRun")
+	var first_ids: Array = first_run.room_sequence_ids_for_test()
+	_assert_seeded_room_rules(first_ids, "Seed 24680")
+	_require(first_run.current_run_seed == 24680, "Manual seed should be used as the current run seed")
+	_require(first.get_node("HUD").run_seed_label.text.contains("24680"), "HUD should show the manual seed")
+
+	var second := await _start_seeded_main("24680")
+	var second_ids: Array = second.get_node("DungeonRun").room_sequence_ids_for_test()
+	_require(first_ids == second_ids, "The same seed should generate the same room sequence")
+
+	var found_different := false
+	for seed_text in ["13579", "97531", "86420"]:
+		var candidate := await _start_seeded_main(seed_text)
+		var candidate_ids: Array = candidate.get_node("DungeonRun").room_sequence_ids_for_test()
+		_assert_seeded_room_rules(candidate_ids, "Seed %s" % seed_text)
+		if candidate_ids != first_ids:
+			found_different = true
+		candidate.queue_free()
+		await process_frame
+	_require(found_different, "Different seeds should usually generate a different room sequence")
+
+	first.queue_free()
+	second.queue_free()
+	await process_frame
+
+func _start_seeded_main(seed_text: String) -> Node:
+	var main_scene := load("res://scenes/main/Main.tscn")
+	var main = main_scene.instantiate()
+	root.add_child(main)
+	await process_frame
+	main.configure_settings_path_for_test("user://smoke_seed_settings_%s.json" % seed_text, true)
+	main.configure_profile_path_for_test("user://smoke_seed_profile_%s.json" % seed_text, true)
+	main.get_node("HUD").set_seed_text_for_test(seed_text)
+	main.start_run_for_test(main.get_node("HUD").get_seed_text_for_test())
+	await process_frame
+	return main
+
+func _assert_seeded_room_rules(ids: Array, label: String) -> void:
+	_require(ids.size() == 10, "%s should generate ten rooms" % label)
+	_require(ids[0] == &"combat_room", "%s floor 1 should be Combat" % label)
+	_require(ids[4] == &"mini_boss_room", "%s floor 5 should be Mini Boss" % label)
+	_require(ids[9] == &"boss_room", "%s floor 10 should be Boss" % label)
+	_require(_ids_contain_all(ids, 1, 3, [&"combat_room", &"treasure_room", &"elite_room"]), "%s floors 2-4 should contain Combat/Treasure/Elite" % label)
+	_require(_ids_contain_all(ids, 5, 8, [&"forge_room", &"event_room", &"elite_room", &"treasure_room"]), "%s floors 6-9 should contain Forge/Event/Elite/Treasure" % label)
+
+func _ids_contain_all(ids: Array, start_index: int, end_index: int, expected: Array) -> bool:
+	var present := []
+	for index in range(start_index, end_index + 1):
+		present.append(ids[index])
+	for id in expected:
+		if not present.has(id):
+			return false
+	return true
 
 func _assert_event_room_effects() -> void:
 	await _assert_ember_pact_event()
@@ -321,11 +392,13 @@ func _start_event_room_fixture(event_definition: Resource) -> Node:
 	main.start_run_for_test()
 	await process_frame
 	var run = main.get_node("DungeonRun")
-	run.current_floor = 7
+	var event_floor: int = run.floor_for_room_id_for_test(&"event_room")
+	_require(event_floor >= 6 and event_floor <= 9, "Event fixture should locate the generated event room")
+	run.current_floor = event_floor
 	run.force_next_event_for_test(event_definition)
 	run._start_current_room()
 	await process_frame
-	_require(run.current_room_definition.id == &"event_room", "Event fixture should start floor seven as an event room")
+	_require(run.current_room_definition.id == &"event_room", "Event fixture should start on the generated event room")
 	_require(_find_event_station(main) != null, "Event fixture should spawn an event station")
 	return main
 
@@ -919,7 +992,9 @@ func _assert_elite_room_contains_iron_husk() -> void:
 	main.start_run_for_test()
 	await process_frame
 	var run = main.get_node("DungeonRun")
-	run.current_floor = 4
+	var elite_floor: int = run.floor_for_room_id_for_test(&"elite_room")
+	_require(elite_floor > 0, "Elite cadence fixture should locate a generated elite room")
+	run.current_floor = elite_floor
 	run._start_current_room()
 	await process_frame
 	var has_iron_husk := false

@@ -59,6 +59,7 @@ var run_stats := {}
 var current_run_active := false
 var run_settled := false
 var settings_pause_active := false
+var seed_rng := RandomNumberGenerator.new()
 @onready var enemy_parent: Node2D = $Enemies
 @onready var pickup_parent: Node2D = $Pickups
 @onready var interactable_parent: Node2D = $Interactables
@@ -93,6 +94,7 @@ var settings_pause_active := false
 ]
 
 func _ready() -> void:
+	seed_rng.randomize()
 	settings_service = SETTINGS_SERVICE_SCRIPT.new()
 	settings_service.name = "SettingsService"
 	add_child(settings_service)
@@ -208,8 +210,8 @@ func _on_run_completed() -> void:
 		player.set_input_enabled(false)
 	_settle_current_run(true)
 
-func _on_start_run_requested() -> void:
-	start_run_from_camp()
+func _on_start_run_requested(seed_text := "") -> void:
+	start_run_from_camp(seed_text)
 
 func _on_reset_save_requested() -> void:
 	if current_run_active:
@@ -233,21 +235,26 @@ func _on_camp_requested() -> void:
 	player.set_input_enabled(false)
 	hud.show_main_menu()
 
-func start_run_from_camp() -> void:
+func start_run_from_camp(seed_text := "") -> void:
 	_close_settings_overlay()
 	current_run_active = true
 	run_settled = false
-	run_stats = _new_run_stats()
+	var run_seed := _run_seed_from_text(str(seed_text))
+	run_stats = _new_run_stats(run_seed)
 	player.initialize(PLAYER_CLASS, STARTER_WEAPON, PROJECTILE_SCENE)
 	player.set_meta_stat_modifiers(meta_progression_service.stat_modifiers(), true)
 	player.set_input_enabled(true)
 	loot_service.enemy_drop_chance_bonus = meta_progression_service.drop_chance_bonus()
+	if loot_service.has_method("set_run_seed"):
+		loot_service.set_run_seed(run_seed)
+	if hud.has_method("set_current_run_seed"):
+		hud.set_current_run_seed(run_seed)
 	hud.hide_main_menu()
 	hud.set_forge_available(false)
-	dungeon_run.start_run()
+	dungeon_run.start_run(run_seed)
 
-func start_run_for_test() -> void:
-	start_run_from_camp()
+func start_run_for_test(seed_text := "") -> void:
+	start_run_from_camp(seed_text)
 
 func configure_profile_path_for_test(path: String, reset := true) -> void:
 	meta_progression_service.set_profile_path(path, reset)
@@ -327,8 +334,17 @@ func _exit_tree() -> void:
 	if get_tree() != null and settings_pause_active:
 		get_tree().paused = false
 
-func _new_run_stats() -> Dictionary:
+func _run_seed_from_text(seed_text: String) -> int:
+	var trimmed := seed_text.strip_edges()
+	if trimmed.is_valid_int():
+		var parsed := int(trimmed)
+		if parsed > 0:
+			return parsed
+	return seed_rng.randi_range(100000, 999999999)
+
+func _new_run_stats(seed := 0) -> Dictionary:
 	return {
+		"seed": int(seed),
 		"highest_floor": 1,
 		"rooms_cleared": 0,
 		"kills": 0,
