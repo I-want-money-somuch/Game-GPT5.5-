@@ -241,6 +241,7 @@ func _assert_seeded_random_runtime() -> void:
 	var first_loot := await _treasure_loot_ids_for_seed("271828")
 	var second_loot := await _treasure_loot_ids_for_seed("271828")
 	_require(first_loot == second_loot, "Same seed should preserve guaranteed treasure chest loot")
+	await _assert_route_choice_runtime()
 
 func _room_sequence_for_seed(seed_text: String) -> Array:
 	var main := await _instantiate_main(seed_text)
@@ -285,6 +286,37 @@ func _treasure_loot_ids_for_seed(seed_text: String) -> Array:
 	_cleanup_runtime_nodes()
 	await process_frame
 	return ids
+
+func _assert_route_choice_runtime() -> void:
+	var main := await _instantiate_main("314159")
+	var run = main.get_node("DungeonRun")
+	var player = main.get_node("Player")
+	var hud = main.get_node("HUD")
+	var exit_portal = main.get_node("ExitPortal")
+	run._unlock_exit()
+	player.global_position = exit_portal.global_position
+	await physics_frame
+	player.refresh_interaction_target()
+	await process_frame
+	_require(player.current_interactable == exit_portal, "Route fixture should select the exit portal")
+	player.force_interact_with(exit_portal)
+	await process_frame
+	_require(hud.is_route_choice_visible_for_test(), "Exit should open the route choice overlay")
+	_require(hud.route_choice_count_for_test() == 2, "Route overlay should offer two choices on non-forced floors")
+	var choices: Array = run.pending_room_choice_ids_for_test()
+	hud.hide_route_choices()
+	_require(not hud.is_route_choice_visible_for_test(), "Route overlay should close without advancing")
+	player.force_interact_with(exit_portal)
+	await process_frame
+	_require(hud.is_route_choice_visible_for_test(), "Route overlay should reopen without rerolling choices")
+	_require(choices == run.pending_room_choice_ids_for_test(), "Reopening route overlay should keep the same pending choices")
+	hud.choose_route_for_test(1)
+	await process_frame
+	_require(run.current_floor == 2, "Choosing a route should advance to floor two")
+	_require(run.chosen_room_sequence_ids_for_test()[1] == choices[1], "Chosen route should record the selected option")
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
 
 func _assert_seeded_room_rules(ids: Array, label: String) -> void:
 	_require(ids.size() == 10, "%s should generate ten rooms" % label)
@@ -457,6 +489,9 @@ func _assert_event_exit_advances(fixture: Dictionary, label: String) -> void:
 	var before_floor: int = run.current_floor
 	player.force_interact_with(player.current_interactable)
 	await process_frame
+	if main.get_node("HUD").is_route_choice_visible_for_test():
+		main.get_node("HUD").choose_route_for_test(0)
+		await process_frame
 	_require(run.current_floor == before_floor + 1, "%s should allow exit interaction after completion" % label)
 
 func _assert_void_arcana_events() -> void:

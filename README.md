@@ -9,7 +9,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Fourteen equipment definitions
 - Three normal enemies
 - One mini boss and one boss
-- Seeded ten-floor run director
+- Seeded ten-floor run director with route choices after room exits
 - Data-driven loot, armor, and enhancement foundations
 - LAN-ready session wrapper using Godot ENet for a later co-op pass
 - Boss-specific loot tables, skill profiles, and mechanic profiles
@@ -19,7 +19,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Original 32px pixel placeholder art for core actors, interactables, projectiles, and the dungeon floor
 - Void arcana build drops with echo and gravity weapon affixes
 - Equipment UI v2 with filtering, sorting, slot inspection, and explicit forge handoff
-- Manual or automatic run seeds for repeatable room/event/drop paths
+- Manual or automatic run seeds for repeatable route offers, room/event choices, and drop paths
 
 ## Architecture goals
 
@@ -43,8 +43,8 @@ Controls:
 - Pick up loot: press `E` near a drop after checking the comparison panel
 - Equipment panel: `Equipment` button, with filters, sorting, equipment slots, and comparison details
 - Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
-- Exit room: press `E` at the portal after the room is clear
-- Run seed: leave the camp seed field blank for a random seed, or enter an integer to replay the room/event/drop path
+- Exit room: press `E` at the portal after the room is clear, then choose the next route when options are available
+- Run seed: leave the camp seed field blank for a random seed, or enter an integer to replay route offers, room/event choices, and drop paths
 
 ## Meta progression
 
@@ -65,13 +65,15 @@ Profile data is saved to `user://profile_v1.json`.
 
 ## Current room pacing
 
-The MVP run generates ten data-driven rooms from the active seed:
+The MVP run keeps a ten-room structure, but rooms 2-4 and 6-9 are now selected through seeded route choices:
 
 1. Combat
-2-4. One each: Combat, Treasure, Elite
+2-4. Choose an order across Combat, Treasure, and Elite
 5. Mini boss
-6-9. One each: Forge, Event, Elite, Treasure
+6-9. Choose an order across Forge, Event, Elite, and Treasure
 10. Boss
+
+Same seed plus the same route choices reproduces the same route offers and drop path; choosing different routes with the same seed can change the room order.
 
 Bosses now use dedicated loot tables and skill/mechanic profiles. Current examples:
 

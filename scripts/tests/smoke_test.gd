@@ -69,7 +69,14 @@ func _run() -> void:
 	_require(main.get_node("ExitPortal").is_in_group("interactables"), "Unlocked exit should require interaction")
 	main.get_node("Player").force_interact_with(main.get_node("ExitPortal"))
 	await process_frame
+	_require(hud_main.is_route_choice_visible_for_test(), "Interacting with the exit should open route choices")
+	_require(hud_main.route_choice_count_for_test() == 2, "First route choice should offer two next rooms")
+	var first_choice_ids: Array = run.pending_room_choice_ids_for_test()
+	_require(first_choice_ids.size() == 2, "DungeonRun should expose two pending route choices")
+	hud_main.choose_route_for_test(0)
+	await process_frame
 	_require(run.current_floor == 2, "Interacting with unlocked exit should advance one floor")
+	_require(run.chosen_room_sequence_ids_for_test()[1] == first_choice_ids[0], "Chosen route should record the selected room")
 
 	var forge_floor: int = run.floor_for_room_id_for_test(&"forge_room")
 	_require(forge_floor >= 6 and forge_floor <= 9, "Generated sequence should include a forge room between floors 6 and 9")
@@ -245,10 +252,20 @@ func _assert_seeded_room_generation() -> void:
 	_assert_seeded_room_rules(first_ids, "Seed 24680")
 	_require(first_run.current_run_seed == 24680, "Manual seed should be used as the current run seed")
 	_require(first.get_node("HUD").run_seed_label.text.contains("24680"), "HUD should show the manual seed")
+	var first_choices: Array = first_run.pending_room_choice_ids_for_test()
+	_require(first_choices.size() == 2, "Seed 24680 should offer two choices for floor two")
+	_require(_ids_from_pool(first_choices, [&"combat_room", &"treasure_room", &"elite_room"]), "Floor two choices should come from the early route pool")
 
 	var second := await _start_seeded_main("24680")
 	var second_ids: Array = second.get_node("DungeonRun").room_sequence_ids_for_test()
 	_require(first_ids == second_ids, "The same seed should generate the same room sequence")
+	_require(first_choices == second.get_node("DungeonRun").pending_room_choice_ids_for_test(), "The same seed should preserve the first route offers")
+
+	var route_a := await _chosen_route_for_seed("24680", [0, 0, 0])
+	var route_b := await _chosen_route_for_seed("24680", [0, 0, 0])
+	var route_c := await _chosen_route_for_seed("24680", [1, 0, 0])
+	_require(route_a == route_b, "Same seed and same route choices should preserve chosen room history")
+	_require(route_a != route_c, "Same seed with a different route choice should change chosen room history")
 
 	var found_different := false
 	for seed_text in ["13579", "97531", "86420"]:
@@ -264,6 +281,24 @@ func _assert_seeded_room_generation() -> void:
 	first.queue_free()
 	second.queue_free()
 	await process_frame
+
+func _ids_from_pool(ids: Array, pool: Array) -> bool:
+	for id in ids:
+		if not pool.has(id):
+			return false
+	return true
+
+func _chosen_route_for_seed(seed_text: String, choices: Array) -> Array:
+	var main := await _start_seeded_main(seed_text)
+	var run = main.get_node("DungeonRun")
+	for choice in choices:
+		run._unlock_exit()
+		run.choose_route_choice_for_test(int(choice))
+		await process_frame
+	var ids: Array = run.chosen_room_sequence_ids_for_test()
+	main.queue_free()
+	await process_frame
+	return ids
 
 func _start_seeded_main(seed_text: String) -> Node:
 	var main_scene := load("res://scenes/main/Main.tscn")
@@ -380,6 +415,9 @@ func _assert_event_exit_advances(main: Node, run: Node, player: Node, label: Str
 	var before_floor: int = run.current_floor
 	player.force_interact_with(player.current_interactable)
 	await process_frame
+	if main.get_node("HUD").is_route_choice_visible_for_test():
+		main.get_node("HUD").choose_route_for_test(0)
+		await process_frame
 	_require(run.current_floor == before_floor + 1, "%s should allow the player to leave through the exit" % label)
 
 func _start_event_room_fixture(event_definition: Resource) -> Node:
@@ -812,6 +850,11 @@ func _assert_runtime_localization(main: Node) -> void:
 	_require(hud.armor_label.text.contains("护甲"), "HUD armor label should localize in-run")
 	_require(hud.equipment_button.text == "装备", "Equipment button should localize in-run")
 	_require(hud.settings_button.text == "设置", "Settings button should localize in-run")
+	hud.show_route_choices(2, [load("res://resources/dungeon/combat_room.tres"), load("res://resources/dungeon/elite_room.tres")])
+	_require(hud.is_route_choice_visible_for_test(), "Route choice overlay should be visible for localization")
+	_require(hud.get_route_choice_text_for_test(0).contains("第 2 层"), "Route choice buttons should localize floor labels")
+	_require(hud.get_route_choice_text_for_test(0).contains("战斗房"), "Route choice buttons should localize room names")
+	hud.hide_route_choices()
 	hud.equipment_panel.select_item_for_test(player.active_weapon)
 	_require(hud.equipment_panel.get_detail_text_for_test().contains("伏特长矛"), "Equipment panel item details should localize")
 	hud.forge_panel.set_selected_item(load("res://resources/weapons/ember_snap.tres"))

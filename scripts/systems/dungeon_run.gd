@@ -7,6 +7,7 @@ signal run_completed
 signal enemy_defeated(enemy: Node, enemy_definition: Resource)
 signal forge_station_activated
 signal event_station_activated(event_definition: Resource, result: Dictionary)
+signal route_choices_requested(next_floor: int, choices: Array)
 
 @export var max_floor := 10
 
@@ -31,6 +32,11 @@ var player_start: Marker2D
 var exit_point: Marker2D
 var exit_portal: Node
 var room_sequence: Array = []
+var projected_room_sequence: Array = []
+var chosen_room_sequence: Array = []
+var pending_room_choices: Array = []
+var early_route_remaining: Array = []
+var late_route_remaining: Array = []
 var room_pool: Array = []
 var current_room_definition: Resource
 var current_floor := 1
@@ -75,31 +81,51 @@ func configure(config: Dictionary) -> void:
 	room_sequence = room_pool.duplicate()
 
 	if exit_portal != null and exit_portal.has_signal("activated"):
-		var advance_callable := Callable(self, "advance_to_next_room")
-		if not exit_portal.activated.is_connected(advance_callable):
-			exit_portal.activated.connect(advance_callable)
+		var exit_callable := Callable(self, "_on_exit_portal_activated")
+		if not exit_portal.activated.is_connected(exit_callable):
+			exit_portal.activated.connect(exit_callable)
 
 func start_run(seed_value := 0) -> void:
 	run_active = true
 	current_floor = 1
 	current_run_seed = _normalize_seed(seed_value)
 	rng.seed = current_run_seed
-	room_sequence = _generate_room_sequence()
-	max_floor = room_sequence.size()
+	_setup_route_state()
+	max_floor = projected_room_sequence.size()
 	_start_current_room()
 
 func advance_to_next_room() -> void:
 	if not run_active or not exit_unlocked or current_floor >= max_floor:
 		return
+	_ensure_pending_room_choices()
+	if pending_room_choices.is_empty():
+		return
+	choose_route_choice(0)
 
+func choose_route_choice(choice_index: int) -> bool:
+	if not run_active or not exit_unlocked or current_floor >= max_floor:
+		return false
+	_ensure_pending_room_choices()
+	if pending_room_choices.is_empty():
+		return false
+
+	var index := clampi(choice_index, 0, pending_room_choices.size() - 1)
+	var chosen: Resource = pending_room_choices[index]
+	if chosen == null:
+		return false
+
+	_commit_route_choice(chosen)
 	current_floor += 1
+	pending_room_choices.clear()
 	_start_current_room()
+	return true
 
 func end_run() -> void:
 	run_active = false
 	exit_unlocked = false
 	event_trial_active = false
 	event_trial_reward_attempts = 0
+	pending_room_choices.clear()
 	_set_exit(false)
 	_clear_room_state()
 
@@ -137,9 +163,43 @@ func _start_current_room() -> void:
 		_spawn_enemy(spawn_plans[index].get("definition"), spawn_position, spawn_plans[index].get("affixes", []))
 
 func _room_definition_for_floor(floor: int) -> Resource:
+	if floor > 0 and floor <= chosen_room_sequence.size():
+		return chosen_room_sequence[floor - 1]
+	if not projected_room_sequence.is_empty():
+		return projected_room_sequence[clampi(floor - 1, 0, projected_room_sequence.size() - 1)]
 	if not room_sequence.is_empty():
 		return room_sequence[clampi(floor - 1, 0, room_sequence.size() - 1)]
 	return null
+
+func _setup_route_state() -> void:
+	var combat := _room_definition_for_id(&"combat_room")
+	early_route_remaining = _rooms_for_ids([&"combat_room", &"treasure_room", &"elite_room"])
+	late_route_remaining = _rooms_for_ids([&"forge_room", &"event_room", &"elite_room", &"treasure_room"])
+	chosen_room_sequence.clear()
+	pending_room_choices.clear()
+	if combat != null:
+		chosen_room_sequence.append(combat)
+	projected_room_sequence = _generate_projected_room_sequence()
+	room_sequence = projected_room_sequence.duplicate()
+
+func _generate_projected_room_sequence() -> Array:
+	var combat := _room_definition_for_id(&"combat_room")
+	var history := []
+	if combat != null:
+		history.append(combat)
+	var early_remaining := _rooms_for_ids([&"combat_room", &"treasure_room", &"elite_room"])
+	var late_remaining := _rooms_for_ids([&"forge_room", &"event_room", &"elite_room", &"treasure_room"])
+	for next_floor in range(2, 11):
+		var choices := _route_choices_for_state(next_floor, history, early_remaining, late_remaining)
+		if choices.is_empty():
+			continue
+		var chosen: Resource = choices[0]
+		history.append(chosen)
+		if next_floor >= 2 and next_floor <= 4:
+			_remove_room_from_route_pool(chosen, early_remaining)
+		elif next_floor >= 6 and next_floor <= 9:
+			_remove_room_from_route_pool(chosen, late_remaining)
+	return history
 
 func _generate_room_sequence() -> Array:
 	var combat := _room_definition_for_id(&"combat_room")
@@ -165,6 +225,14 @@ func _shuffled_rooms(rooms: Array) -> Array:
 		result[index] = result[swap_index]
 		result[swap_index] = temp
 	return result
+
+func _rooms_for_ids(ids: Array) -> Array:
+	var rooms := []
+	for room_id in ids:
+		var definition := _room_definition_for_id(room_id)
+		if definition != null:
+			rooms.append(definition)
+	return rooms
 
 func _room_definition_for_id(room_id: StringName) -> Resource:
 	for definition in room_pool:
@@ -238,18 +306,13 @@ func _roll_elite_affix() -> Resource:
 func _should_promote_pressure_elite() -> bool:
 	if elite_affix_pool.is_empty() or current_room_definition == null:
 		return false
-	if not _next_room_is_boss_like():
+	if not _next_floor_is_boss_like():
 		return false
 	return rng.randf() < 0.75
 
-func _next_room_is_boss_like() -> bool:
-	if room_sequence.is_empty() or current_floor >= room_sequence.size():
-		return false
-	var next_room: Resource = room_sequence[current_floor]
-	if next_room == null:
-		return false
-	var group: StringName = next_room.get("enemy_group")
-	return group == &"mini_boss" or group == &"boss"
+func _next_floor_is_boss_like() -> bool:
+	var next_floor := current_floor + 1
+	return next_floor == 5 or next_floor == 10
 
 func _spawn_position(index: int) -> Vector2:
 	if spawn_points.is_empty():
@@ -441,10 +504,12 @@ func _should_unlock_exit_on_room_start() -> bool:
 
 func _unlock_exit() -> void:
 	exit_unlocked = true
+	pending_room_choices.clear()
 	_set_exit(true)
 
 func _lock_exit() -> void:
 	exit_unlocked = false
+	pending_room_choices.clear()
 	_set_exit(false)
 
 func _set_exit(available: bool) -> void:
@@ -484,25 +549,126 @@ func _clear_room_state() -> void:
 		if is_instance_valid(projectile):
 			projectile.queue_free()
 
+func _on_exit_portal_activated() -> void:
+	if not run_active or not exit_unlocked or current_floor >= max_floor:
+		return
+	_ensure_pending_room_choices()
+	if pending_room_choices.size() <= 1:
+		choose_route_choice(0)
+		return
+	route_choices_requested.emit(current_floor + 1, pending_room_choices.duplicate())
+
+func _ensure_pending_room_choices() -> void:
+	if not pending_room_choices.is_empty():
+		return
+	pending_room_choices = _generate_next_room_choices()
+
+func _generate_next_room_choices() -> Array:
+	if current_floor >= max_floor:
+		return []
+	return _route_choices_for_state(current_floor + 1, chosen_room_sequence, early_route_remaining, late_route_remaining)
+
+func _route_choices_for_state(next_floor: int, history: Array, early_remaining: Array, late_remaining: Array) -> Array:
+	if next_floor == 5:
+		return _single_room_choice(&"mini_boss_room")
+	if next_floor == 10:
+		return _single_room_choice(&"boss_room")
+
+	var pool := []
+	if next_floor >= 2 and next_floor <= 4:
+		pool = early_remaining.duplicate()
+	elif next_floor >= 6 and next_floor <= 9:
+		pool = late_remaining.duplicate()
+	if pool.size() <= 2:
+		return pool
+
+	var route_rng := RandomNumberGenerator.new()
+	route_rng.seed = _route_choice_seed(next_floor, history)
+	for index in range(pool.size() - 1, 0, -1):
+		var swap_index := route_rng.randi_range(0, index)
+		var temp = pool[index]
+		pool[index] = pool[swap_index]
+		pool[swap_index] = temp
+	return pool.slice(0, 2)
+
+func _single_room_choice(room_id: StringName) -> Array:
+	var definition := _room_definition_for_id(room_id)
+	return [definition] if definition != null else []
+
+func _commit_route_choice(room: Resource) -> void:
+	chosen_room_sequence.append(room)
+	room_sequence = chosen_room_sequence.duplicate()
+	if current_floor + 1 >= 2 and current_floor + 1 <= 4:
+		_remove_room_from_route_pool(room, early_route_remaining)
+	elif current_floor + 1 >= 6 and current_floor + 1 <= 9:
+		_remove_room_from_route_pool(room, late_route_remaining)
+
+func _remove_room_from_route_pool(room: Resource, pool: Array) -> void:
+	if room == null:
+		return
+	var room_id: StringName = room.get("id")
+	for index in range(pool.size() - 1, -1, -1):
+		var candidate: Resource = pool[index]
+		if candidate != null and candidate.get("id") == room_id:
+			pool.remove_at(index)
+			return
+
+func _route_choice_seed(next_floor: int, history: Array) -> int:
+	var value := int(current_run_seed) * 1009 + next_floor * 9176
+	for definition in history:
+		if definition != null:
+			value += _stable_text_hash(str(definition.get("id"))) * 37
+	return absi(value) + 1
+
+func _stable_text_hash(text: String) -> int:
+	var value := 17
+	for index in range(text.length()):
+		value = int(value * 31 + text.unicode_at(index)) & 0x7fffffff
+	return value
+
 func force_next_event_for_test(event_definition: Resource) -> void:
 	forced_event_definition_for_test = event_definition
 
 func room_sequence_ids_for_test() -> Array:
 	var ids := []
-	for definition in room_sequence:
+	for definition in projected_room_sequence:
 		ids.append(definition.get("id") if definition != null else &"")
 	return ids
 
+func chosen_room_sequence_ids_for_test() -> Array:
+	var ids := []
+	for definition in chosen_room_sequence:
+		ids.append(definition.get("id") if definition != null else &"")
+	return ids
+
+func pending_room_choice_ids_for_test() -> Array:
+	_ensure_pending_room_choices()
+	var ids := []
+	for definition in pending_room_choices:
+		ids.append(definition.get("id") if definition != null else &"")
+	return ids
+
+func choose_route_choice_for_test(choice_index: int) -> bool:
+	return choose_route_choice(choice_index)
+
+func choose_route_choice_by_room_id_for_test(room_id: StringName) -> bool:
+	_ensure_pending_room_choices()
+	for index in range(pending_room_choices.size()):
+		var definition: Resource = pending_room_choices[index]
+		if definition != null and definition.get("id") == room_id:
+			return choose_route_choice(index)
+	return false
+
 func floor_for_room_id_for_test(room_id: StringName) -> int:
-	for index in range(room_sequence.size()):
-		var definition: Resource = room_sequence[index]
+	for index in range(projected_room_sequence.size()):
+		var definition: Resource = projected_room_sequence[index]
 		if definition != null and definition.get("id") == room_id:
 			return index + 1
 	return -1
 
 func floor_for_room_type_for_test(room_type: int) -> int:
-	for index in range(room_sequence.size()):
-		var definition: Resource = room_sequence[index]
+	for index in range(projected_room_sequence.size()):
+		var definition: Resource = projected_room_sequence[index]
 		if definition != null and int(definition.get("room_type")) == room_type:
 			return index + 1
 	return -1

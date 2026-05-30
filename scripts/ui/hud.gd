@@ -10,6 +10,7 @@ signal camp_requested
 signal settings_requested
 signal settings_back_requested
 signal language_selected(language: String)
+signal route_choice_selected(choice_index: int)
 
 @onready var health_label: Label = %HealthLabel
 @onready var armor_label: Label = %ArmorLabel
@@ -44,6 +45,12 @@ signal language_selected(language: String)
 @onready var language_label: Label = %LanguageLabel
 @onready var language_option: OptionButton = %LanguageOption
 @onready var settings_back_button: Button = %SettingsBackButton
+@onready var route_choice_overlay: Control = %RouteChoiceOverlay
+@onready var route_choice_title: Label = %RouteChoiceTitle
+@onready var route_choice_subtitle: Label = %RouteChoiceSubtitle
+@onready var route_choice_button_a: Button = %RouteChoiceButtonA
+@onready var route_choice_button_b: Button = %RouteChoiceButtonB
+@onready var route_choice_back_button: Button = %RouteChoiceBackButton
 @onready var talent_buttons := {
 	&"vital_core": %VitalCoreButton,
 	&"reinforced_plating": %ReinforcedPlatingButton,
@@ -71,6 +78,8 @@ var last_run_end_stats := {}
 var last_run_end_rewards := {}
 var language_option_refreshing := false
 var seed_rng := RandomNumberGenerator.new()
+var current_route_next_floor := 1
+var current_route_choices: Array = []
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -82,6 +91,7 @@ func _ready() -> void:
 	run_end_overlay.visible = false
 	main_menu_overlay.visible = false
 	settings_overlay.visible = false
+	route_choice_overlay.visible = false
 	forge_button.disabled = true
 	equipment_button.pressed.connect(func() -> void: equipment_panel.visible = not equipment_panel.visible)
 	forge_button.pressed.connect(func() -> void: forge_panel.visible = not forge_panel.visible if not forge_button.disabled else false)
@@ -93,6 +103,9 @@ func _ready() -> void:
 	menu_settings_button.pressed.connect(func() -> void: settings_requested.emit())
 	settings_back_button.pressed.connect(func() -> void: settings_back_requested.emit())
 	language_option.item_selected.connect(_on_language_option_selected)
+	route_choice_button_a.pressed.connect(func() -> void: _on_route_choice_button_pressed(0))
+	route_choice_button_b.pressed.connect(func() -> void: _on_route_choice_button_pressed(1))
+	route_choice_back_button.pressed.connect(hide_route_choices)
 	for talent_id in talent_buttons.keys():
 		var button: Button = talent_buttons[talent_id]
 		button.pressed.connect(_on_talent_button_pressed.bind(talent_id))
@@ -212,6 +225,7 @@ func _on_room_started(floor: int, room_type: String) -> void:
 	run_end_overlay.visible = false
 	main_menu_overlay.visible = false
 	settings_overlay.visible = false
+	route_choice_overlay.visible = false
 	pickup_preview_panel.visible = false
 
 func _on_player_died() -> void:
@@ -232,6 +246,7 @@ func _show_run_end_keys(title_key: String, body_key: String) -> void:
 	run_end_overlay.visible = true
 	main_menu_overlay.visible = false
 	settings_overlay.visible = false
+	route_choice_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
 	pickup_preview_panel.visible = false
@@ -246,6 +261,9 @@ func show_run_end_summary(title_key: String, stats: Dictionary, rewards: Diction
 func _render_run_end_summary() -> void:
 	var body := PackedStringArray()
 	body.append(_lf("run.summary.seed", [int(last_run_end_stats.get("seed", 0))], "Seed: %d"))
+	var route_text := _format_route_summary(last_run_end_stats.get("route", []))
+	if not route_text.is_empty():
+		body.append(_lf("run.summary.route", [route_text], "Route: %s"))
 	body.append(_lf("run.summary.highest", [int(last_run_end_stats.get("highest_floor", 1)), int(last_run_end_stats.get("rooms_cleared", 0))], "Highest Floor: %d   Rooms Cleared: %d"))
 	body.append(_lf("run.summary.kills", [int(last_run_end_stats.get("kills", 0)), int(last_run_end_stats.get("elites", 0)), int(last_run_end_stats.get("mini_boss", 0)), int(last_run_end_stats.get("final_boss", 0))], "Kills: %d   Elites: %d   Mini Boss: %d   Final Boss: %d"))
 	body.append("")
@@ -257,6 +275,7 @@ func _render_run_end_summary() -> void:
 	run_end_overlay.visible = true
 	main_menu_overlay.visible = false
 	settings_overlay.visible = false
+	route_choice_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
 	pickup_preview_panel.visible = false
@@ -266,6 +285,7 @@ func show_main_menu() -> void:
 	main_menu_overlay.visible = true
 	run_end_overlay.visible = false
 	settings_overlay.visible = false
+	route_choice_overlay.visible = false
 	equipment_panel.visible = false
 	forge_panel.visible = false
 	pickup_preview_panel.visible = false
@@ -277,11 +297,78 @@ func hide_main_menu() -> void:
 	main_menu_overlay.visible = false
 
 func show_settings() -> void:
+	route_choice_overlay.visible = false
 	settings_overlay.visible = true
 	_refresh_language_options()
 
 func hide_settings() -> void:
 	settings_overlay.visible = false
+
+func show_route_choices(next_floor: int, choices: Array) -> void:
+	if choices.is_empty():
+		return
+	current_route_next_floor = next_floor
+	current_route_choices = choices.duplicate()
+	_render_route_choices()
+	route_choice_overlay.visible = true
+	pickup_preview_panel.visible = false
+	equipment_panel.visible = false
+	forge_panel.visible = false
+
+func hide_route_choices() -> void:
+	route_choice_overlay.visible = false
+
+func _on_route_choice_button_pressed(index: int) -> void:
+	if index < 0 or index >= current_route_choices.size():
+		return
+	route_choice_overlay.visible = false
+	route_choice_selected.emit(index)
+
+func _render_route_choices() -> void:
+	if route_choice_overlay == null:
+		return
+	route_choice_title.text = _t("route.title", "Choose Next Room")
+	route_choice_subtitle.text = _lf("route.subtitle", [current_route_next_floor], "Floor %d route")
+	route_choice_back_button.text = _t("ui.back", "Back")
+	var buttons := [route_choice_button_a, route_choice_button_b]
+	for index in range(buttons.size()):
+		var button: Button = buttons[index]
+		var has_choice := index < current_route_choices.size()
+		button.visible = has_choice
+		button.disabled = not has_choice
+		if has_choice:
+			button.text = _route_choice_text(current_route_choices[index])
+
+func _route_choice_text(room: Resource) -> String:
+	if room == null:
+		return _t("route.unknown", "Unknown Route")
+	var room_name := _resource_name(room)
+	var type_name := _t("room_type.%s" % str(room.room_type_name()), str(room.room_type_name()).capitalize())
+	var hint := _route_hint(room)
+	return _lf("route.choice", [current_route_next_floor, room_name, type_name, hint], "Floor %d: %s\n%s - %s")
+
+func _route_hint(room: Resource) -> String:
+	if room == null:
+		return ""
+	var room_id := str(room.get("id"))
+	var type_name := str(room.room_type_name())
+	var fallback := ""
+	match type_name:
+		"combat":
+			fallback = "Fight a balanced pack for a reward chest."
+		"elite":
+			fallback = "Face an elite-centered room for stronger rewards."
+		"treasure":
+			fallback = "Claim a guarded cache without a full fight."
+		"forge":
+			fallback = "Use the forge to push an item further."
+		"event":
+			fallback = "Take a risk-reward shrine choice."
+		"boss":
+			fallback = "Challenge a major guardian."
+		_:
+			fallback = "Advance deeper."
+	return _t("route.hint.%s" % room_id, _t("route.hint.%s" % type_name, fallback))
 
 func refresh_meta_progression() -> void:
 	if meta_progression_service == null:
@@ -313,7 +400,7 @@ func _last_run_text(last_run) -> String:
 		return _t("camp.last_run_none", "Last Run: none")
 	var stats: Dictionary = last_run.get("stats", {})
 	var rewards: Dictionary = last_run.get("rewards", {})
-	return _lf("camp.last_run", [
+	var summary := _lf("camp.last_run", [
 		int(stats.get("seed", 0)),
 		int(stats.get("highest_floor", 1)),
 		int(stats.get("rooms_cleared", 0)),
@@ -321,6 +408,20 @@ func _last_run_text(last_run) -> String:
 		int(rewards.get("souls", 0)),
 		int(rewards.get("talent_points", 0)),
 	], "Last Run: Seed %d, Floor %d, Rooms %d, Gold +%d, Souls +%d, TP +%d")
+	var route_text := _format_route_summary(stats.get("route", []))
+	if not route_text.is_empty():
+		summary += "\n" + _lf("run.summary.route", [route_text], "Route: %s")
+	return summary
+
+func _format_route_summary(route_ids) -> String:
+	if not (route_ids is Array) or route_ids.is_empty():
+		return ""
+	var names := PackedStringArray()
+	for room_id in route_ids:
+		var key := "room.%s.name" % str(room_id)
+		var fallback := str(room_id).replace("_room", "").replace("_", " ").capitalize()
+		names.append(_t(key, fallback))
+	return " > ".join(names)
 
 func _refresh_all_text() -> void:
 	equipment_button.text = _t("ui.equipment", "Equipment")
@@ -378,6 +479,8 @@ func _refresh_all_text() -> void:
 		retry_button.text = _t("ui.back", "Back") + " " + _t("ui.camp", "Camp")
 	elif last_run_end_mode == "summary" and run_end_overlay.visible:
 		_render_run_end_summary()
+	if route_choice_overlay.visible:
+		_render_route_choices()
 	_refresh_language_options()
 
 func _refresh_current_interactable_text() -> void:
@@ -475,6 +578,21 @@ func set_seed_text_for_test(value: String) -> void:
 
 func get_seed_text_for_test() -> String:
 	return seed_line_edit.text
+
+func is_route_choice_visible_for_test() -> bool:
+	return route_choice_overlay.visible
+
+func route_choice_count_for_test() -> int:
+	return current_route_choices.size()
+
+func get_route_choice_text_for_test(index: int) -> String:
+	var buttons := [route_choice_button_a, route_choice_button_b]
+	if index < 0 or index >= buttons.size():
+		return ""
+	return buttons[index].text
+
+func choose_route_for_test(index: int) -> void:
+	_on_route_choice_button_pressed(index)
 
 func _t(key: String, fallback := "") -> String:
 	if localization_service != null and localization_service.has_method("text"):

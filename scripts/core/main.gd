@@ -155,6 +155,8 @@ func _ready() -> void:
 	dungeon_run.room_cleared.connect(_on_room_cleared)
 	dungeon_run.enemy_defeated.connect(_on_enemy_defeated)
 	dungeon_run.forge_station_activated.connect(_on_forge_station_activated)
+	if dungeon_run.has_signal("route_choices_requested"):
+		dungeon_run.route_choices_requested.connect(_on_route_choices_requested)
 	dungeon_run.run_completed.connect(_on_run_completed)
 	player.died.connect(_on_player_died)
 	hud.start_run_requested.connect(_on_start_run_requested)
@@ -164,6 +166,8 @@ func _ready() -> void:
 	hud.settings_requested.connect(_on_settings_requested)
 	hud.settings_back_requested.connect(_on_settings_back_requested)
 	hud.language_selected.connect(_on_language_selected)
+	if hud.has_signal("route_choice_selected"):
+		hud.route_choice_selected.connect(_on_route_choice_selected)
 	if localization_service.has_signal("language_changed"):
 		localization_service.language_changed.connect(_on_language_changed)
 	hud.show_main_menu()
@@ -195,6 +199,14 @@ func _on_enemy_defeated(enemy: Node, definition: Resource) -> void:
 func _on_forge_station_activated() -> void:
 	if hud.has_method("open_forge_panel"):
 		hud.open_forge_panel()
+
+func _on_route_choices_requested(next_floor: int, choices: Array) -> void:
+	if hud.has_method("show_route_choices"):
+		hud.show_route_choices(next_floor, choices)
+
+func _on_route_choice_selected(choice_index: int) -> void:
+	if dungeon_run.has_method("choose_route_choice"):
+		dungeon_run.choose_route_choice(choice_index)
 
 func _on_player_died() -> void:
 	_close_settings_overlay()
@@ -293,6 +305,8 @@ func _settle_current_run(completed: bool) -> Dictionary:
 	current_run_active = false
 	run_stats["completed"] = completed
 	run_stats["highest_floor"] = maxi(int(run_stats.get("highest_floor", 1)), dungeon_run.current_floor)
+	if dungeon_run.has_method("chosen_room_sequence_ids_for_test"):
+		run_stats["route"] = dungeon_run.chosen_room_sequence_ids_for_test()
 	var rewards: Dictionary = meta_progression_service.award_run(run_stats)
 	var title := "run.end.depths_cleared" if completed else "run.end.run_ended"
 	hud.show_run_end_summary(title, run_stats, rewards)
@@ -352,4 +366,5 @@ func _new_run_stats(seed := 0) -> Dictionary:
 		"mini_boss": 0,
 		"final_boss": 0,
 		"completed": false,
+		"route": [],
 	}

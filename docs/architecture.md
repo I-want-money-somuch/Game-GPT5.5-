@@ -39,7 +39,7 @@ Boss loot is awarded through reward chests, not corpse drops. This keeps room co
 
 ## Dungeon flow
 
-Rooms are defined as `RoomDefinition` resources under `resources/dungeon/`. `DungeonRun` builds a seeded ten-floor room sequence, applies the current room through `RoomPresenter`, spawns encounters when required, spawns interactable reward chests, and unlocks `ExitPortal` when the room reward flow is complete.
+Rooms are defined as `RoomDefinition` resources under `resources/dungeon/`. `DungeonRun` builds seeded route offers for the ten-floor slice, applies the chosen room through `RoomPresenter`, spawns encounters when required, spawns interactable reward chests, and unlocks `ExitPortal` when the room reward flow is complete.
 
 The current vertical slice uses seed-driven pacing:
 
@@ -49,6 +49,8 @@ The current vertical slice uses seed-driven pacing:
 - The forge room spawns a forge station; pressing `E` near it opens the forge UI.
 - The event room spawns one event station. Current events use run-only costs and rewards, and the Trial Altar can temporarily lock the exit while it spawns an elite enemy.
 - Mini boss and boss rooms use the same template path with different enemy groups.
+
+When a cleared room has multiple valid next rooms, pressing `E` at the exit opens the HUD route-choice overlay. Same seed plus the same choices reproduces the same room history, event selection, enemy mix, elite affixes, and drop path. Forced anchor floors can advance directly when only one next room is valid.
 
 ## Interaction flow
 
@@ -64,12 +66,12 @@ The game starts in the HUD camp overlay. Starting a run applies permanent talent
 
 ## MVP content target
 
-The first playable slice is scoped to ten seeded rooms:
+The first playable slice is scoped to ten seeded route slots:
 
 - Room 1: combat
-- Rooms 2-4: one combat, one treasure, one elite
+- Rooms 2-4: chosen order across combat, treasure, and elite
 - Room 5: mini boss
-- Rooms 6-9: one forge, one event, one elite, one treasure
+- Rooms 6-9: chosen order across forge, event, elite, and treasure
 - Room 10: boss
 
-The dungeon generator starts as a seeded room-sequence director. Template rooms, graph routing, and route-choice UI can be added after the combat, drops, and build loop feel good.
+The dungeon generator is currently a seeded route-choice director. Template rooms, a visible route graph, and a minimap can be added after this lightweight choice loop feels good.
