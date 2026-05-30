@@ -5,8 +5,8 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 ## Current vertical slice
 
 - One playable class: Vanguard
-- Seven starter/drop weapons
-- Eleven equipment definitions
+- Eight starter/drop weapons
+- Fourteen equipment definitions
 - Three normal enemies
 - One mini boss and one boss
 - Ten-floor run director
@@ -18,6 +18,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - Interactable pickups with weapon/equipment comparison preview
 - Original 32px pixel placeholder art for core actors, interactables, projectiles, and the dungeon floor
 - Void arcana build drops with echo and gravity weapon affixes
+- Equipment UI v2 with filtering, sorting, slot inspection, and explicit forge handoff
 
 ## Architecture goals
 
@@ -39,7 +40,7 @@ Controls:
 - Fire: left mouse button
 - Interact: E
 - Pick up loot: press `E` near a drop after checking the comparison panel
-- Equipment panel: `Equipment` button
+- Equipment panel: `Equipment` button, with filters, sorting, equipment slots, and comparison details
 - Forge panel: interact with the forge station, or use the unlocked `Forge` button while in a forge room
 - Exit room: press `E` at the portal after the room is clear
 

@@ -123,120 +123,168 @@ text = "Settings"
 unique_name_in_owner = true
 layout_mode = 0
 offset_left = 14.0
-offset_top = 154.0
-offset_right = 414.0
-offset_bottom = 480.0
+offset_top = 142.0
+offset_right = 642.0
+offset_bottom = 526.0
 script = ExtResource("2")
 
 [node name="MarginContainer" type="MarginContainer" parent="Root/EquipmentPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 6
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 8
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="VBoxContainer" type="VBoxContainer" parent="Root/EquipmentPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="Header" type="HBoxContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 18
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
 text = "Equipment"
 
-[node name="EquipmentCloseButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="EquipmentCloseButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Header"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 30)
+custom_minimum_size = Vector2(88, 32)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Close"
 
-[node name="CurrentWeaponLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
-unique_name_in_owner = true
+[node name="Content" type="HBoxContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-text = "Weapon: -"
+size_flags_vertical = 3
+theme_override_constants/separation = 10
 
-[node name="SlotGrid" type="GridContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="LeftColumn" type="VBoxContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content"]
+custom_minimum_size = Vector2(256, 0)
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FilterOption" type="OptionButton" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+
+[node name="SortOption" type="OptionButton" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 15
+
+[node name="InventoryList" type="ItemList" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 132)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 15
+auto_height = false
+
+[node name="SlotGrid" type="GridContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn"]
 layout_mode = 2
 columns = 2
 
-[node name="HelmetLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="WeaponSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
+text = "Weapon: -"
+
+[node name="HelmetSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(124, 32)
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
 text = "Helmet: -"
 
-[node name="ChestLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="ChestSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Chest: -"
 
-[node name="GlovesLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="GlovesSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Gloves: -"
 
-[node name="BootsLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="BootsSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Boots: -"
 
-[node name="TrinketLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="TrinketSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Trinket: -"
 
-[node name="RingLabel" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/SlotGrid"]
+[node name="RingSlotButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/LeftColumn/SlotGrid"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(130, 18)
+custom_minimum_size = Vector2(124, 32)
 layout_mode = 2
-theme_override_font_sizes/font_size = 15
+theme_override_font_sizes/font_size = 14
 text = "Ring: -"
 
-[node name="InventoryList" type="ItemList" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
-unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 64)
+[node name="RightColumn" type="VBoxContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content"]
+custom_minimum_size = Vector2(332, 0)
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
-auto_height = false
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
 
-[node name="DetailTitle" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="DetailTitle" type="Label" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/RightColumn"]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 18
 text = "Details"
 
-[node name="ItemDetailText" type="RichTextLabel" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="ItemDetailText" type="RichTextLabel" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/RightColumn"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 96)
+custom_minimum_size = Vector2(0, 260)
 layout_mode = 2
-theme_override_font_sizes/normal_font_size = 16
+size_flags_vertical = 3
+theme_override_font_sizes/normal_font_size = 15
 text = ""
 fit_content = false
 scroll_active = true
 autowrap_mode = 2
 
-[node name="EquipButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer"]
+[node name="ActionRow" type="HBoxContainer" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="EquipButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/RightColumn/ActionRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 34)
+custom_minimum_size = Vector2(140, 36)
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "Equip"
 
+[node name="SendToForgeButton" type="Button" parent="Root/EquipmentPanel/MarginContainer/VBoxContainer/Content/RightColumn/ActionRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(170, 36)
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "Send to Forge"
+
 [node name="ForgePanel" type="PanelContainer" parent="Root"]
 unique_name_in_owner = true
 layout_mode = 0
-offset_left = 610.0
-offset_top = 154.0
+offset_left = 660.0
+offset_top = 142.0
 offset_right = 946.0
 offset_bottom = 374.0
 script = ExtResource("3")

@@ -16,6 +16,7 @@ func _run() -> void:
 	await _assert_weapon_affix_effect_runtime()
 	await _assert_event_room_runtime()
 	await _assert_settings_pause_runtime()
+	await _assert_equipment_forge_runtime()
 	await _assert_boss_room_regression(5, &"cinder_bulwark", [&"cinderplate_core", &"bulwark_ember_ring"], false)
 	await _assert_boss_room_regression(10, &"depths_warden", [&"warden_rift_staff", &"abyssal_guard_helm"], true)
 	await _assert_ten_room_stress()
@@ -219,6 +220,47 @@ func _assert_settings_pause_runtime() -> void:
 	_cleanup_runtime_nodes()
 	await process_frame
 
+func _assert_equipment_forge_runtime() -> void:
+	var main := await _instantiate_main()
+	var run = main.get_node("DungeonRun")
+	var player = main.get_node("Player")
+	var hud = main.get_node("HUD")
+	var equipment_panel = hud.equipment_panel
+	var forge_panel = hud.forge_panel
+
+	run.current_floor = 6
+	run._start_current_room()
+	await process_frame
+	_require(run.current_room_definition.id == &"forge_room", "Equipment forge fixture should enter the forge room")
+	equipment_panel.select_item_for_test(player.active_weapon)
+	_require(not equipment_panel.is_send_to_forge_disabled_for_test(), "Send to Forge should be available for the active weapon in forge rooms")
+	var volt := load("res://resources/weapons/volt_spear.tres")
+	player.inventory.append(volt)
+	player.inventory_changed.emit(player.inventory.size())
+	player.loadout_changed.emit(player.inventory, player.equipped)
+	equipment_panel.select_item_for_test(volt)
+	equipment_panel.send_selected_to_forge_for_test()
+	await process_frame
+	_require(forge_panel.selected_item_for_test() == volt, "Send to Forge should select the requested item in Forge Panel")
+	player.apply_enhancement_result(volt, {"success": false, "level": -1})
+	await process_frame
+	_require(forge_panel.selected_item_for_test() == null, "Forge Panel should clear removed or broken items")
+	_require(forge_panel.forge_button.disabled, "Forge button should disable after selected item is removed")
+
+	equipment_panel.select_item_for_test(player.active_weapon)
+	equipment_panel.send_selected_to_forge_for_test()
+	await process_frame
+	_require(forge_panel.selected_item_for_test() == player.active_weapon, "Forge Panel should accept the active weapon while it is valid")
+	run.advance_to_next_room()
+	await process_frame
+	_require(not forge_panel.visible, "Leaving a forge room should close Forge Panel")
+	_require(equipment_panel.is_send_to_forge_disabled_for_test(), "Leaving a forge room should disable Send to Forge")
+	_require(forge_panel.selected_item_for_test() == null, "Leaving a forge room should clear Forge Panel selection")
+
+	main.queue_free()
+	_cleanup_runtime_nodes()
+	await process_frame
+
 func _assert_event_cost_guards() -> void:
 	var ember_fixture := await _spawn_event_fixture(load("res://resources/events/ember_pact.tres"))
 	var ember_player = ember_fixture["player"]
@@ -321,8 +363,14 @@ func _assert_event_exit_advances(fixture: Dictionary, label: String) -> void:
 	var exit_portal = main.get_node("ExitPortal")
 	_require(run.exit_unlocked, "%s should leave the event-room exit unlocked after completion" % label)
 	_require(exit_portal.visible and exit_portal.is_in_group("interactables"), "%s should expose an interactable exit portal" % label)
+	player.global_position = exit_portal.global_position
+	await physics_frame
+	player.refresh_interaction_target()
+	await process_frame
+	_require(player.current_interactable == exit_portal, "%s should select the exit through real overlap refresh" % label)
+	_require(main.get_node("HUD").interaction_label.text.contains("Enter Next Room"), "%s should show the exit prompt near the portal" % label)
 	var before_floor: int = run.current_floor
-	player.force_interact_with(exit_portal)
+	player.force_interact_with(player.current_interactable)
 	await process_frame
 	_require(run.current_floor == before_floor + 1, "%s should allow exit interaction after completion" % label)
 
@@ -659,10 +707,13 @@ func _assert_pickup_can_be_interacted(main: Node, player: Node, label: String) -
 	_require(pickup.is_in_group("interactables"), "%s pickup should use the interaction group" % label)
 	_require(pickup.has_method("get_preview_item") and pickup.get_preview_item() != null, "%s pickup should expose preview item data" % label)
 	var inventory_before: int = player.inventory.size()
-	player._on_interaction_area_entered(pickup)
+	player.global_position = pickup.global_position
+	await physics_frame
+	player.refresh_interaction_target()
 	await process_frame
+	_require(player.current_interactable == pickup, "%s pickup should become the selected interaction target, got %s" % [label, str(player.current_interactable)])
 	_require(main.get_node("HUD").is_pickup_preview_visible_for_test(), "%s pickup should show preview UI" % label)
-	player.force_interact_with(pickup)
+	player.force_interact_with(player.current_interactable)
 	await process_frame
 	_require(player.inventory.size() == inventory_before + 1, "%s pickup should enter inventory after interaction" % label)
 

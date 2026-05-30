@@ -18,6 +18,7 @@ func set_available(available: bool, text := "Next") -> void:
 	self.available = available
 	label_text = text
 	visible = available
+	monitoring = available
 	monitorable = available
 	if available:
 		add_to_group("interactables")
@@ -26,6 +27,7 @@ func set_available(available: bool, text := "Next") -> void:
 	if collision_shape != null:
 		collision_shape.set_deferred("disabled", not available)
 	refresh_localization()
+	_refresh_players_deferred()
 	if available:
 		_pulse()
 
@@ -38,6 +40,9 @@ func get_prompt_text() -> String:
 func interact(_player: Node) -> void:
 	if available:
 		activated.emit()
+
+func get_interaction_priority() -> float:
+	return 100.0
 
 func _pulse() -> void:
 	ring.scale = Vector2.ONE
@@ -69,3 +74,13 @@ func _t(key: String, fallback := "") -> String:
 	if localization_service != null and localization_service.has_method("text"):
 		return localization_service.text(key, fallback)
 	return fallback if not fallback.is_empty() else key
+
+func _refresh_players_deferred() -> void:
+	if not is_inside_tree():
+		return
+	call_deferred("_refresh_players_now")
+
+func _refresh_players_now() -> void:
+	for player in get_tree().get_nodes_in_group("players"):
+		if player != null and player.has_method("refresh_interaction_target"):
+			player.refresh_interaction_target()

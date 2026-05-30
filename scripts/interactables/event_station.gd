@@ -39,6 +39,9 @@ func get_prompt_text() -> String:
 		return _lf("interact.use_event", [_resource_name(event_definition)], "Use %s")
 	return _t("state.event", "Event")
 
+func get_interaction_priority() -> float:
+	return 70.0
+
 func interact(player: Node) -> void:
 	if completed or event_service == null or not event_service.has_method("resolve_event"):
 		return
@@ -51,6 +54,7 @@ func interact(player: Node) -> void:
 	completed = bool(event_definition.get("one_shot")) if event_definition != null else true
 	if completed:
 		remove_from_group("interactables")
+		set_deferred("monitoring", false)
 		set_deferred("monitorable", false)
 		if collision_shape != null:
 			collision_shape.set_deferred("disabled", true)

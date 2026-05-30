@@ -45,6 +45,9 @@ func can_interact(player: Node) -> bool:
 func get_prompt_text() -> String:
 	return _lf("interact.pick_up", [_resource_name(item_definition)], "Pick Up %s") if item_definition != null else _t("interact.pick_up_generic", "Pick Up")
 
+func get_interaction_priority() -> float:
+	return 10.0
+
 func get_preview_item() -> Resource:
 	return item_definition
 

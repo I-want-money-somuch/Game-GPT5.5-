@@ -37,12 +37,16 @@ func can_interact(_player: Node) -> bool:
 func get_prompt_text() -> String:
 	return _t("interact.open_chest", "Open Chest")
 
+func get_interaction_priority() -> float:
+	return 80.0
+
 func interact(_player: Node) -> void:
 	if is_open:
 		return
 
 	is_open = true
 	remove_from_group("interactables")
+	set_deferred("monitoring", false)
 	set_deferred("monitorable", false)
 	collision_shape.set_deferred("disabled", true)
 	label.text = _t("state.opened", "Opened")

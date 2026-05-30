@@ -21,6 +21,9 @@ func can_interact(_player: Node) -> bool:
 func get_prompt_text() -> String:
 	return _t("interact.use_forge", "Use Forge")
 
+func get_interaction_priority() -> float:
+	return 60.0
+
 func interact(_player: Node) -> void:
 	_pulse()
 	activated.emit(self)

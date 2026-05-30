@@ -88,8 +88,8 @@ func _ready() -> void:
 	for talent_id in talent_buttons.keys():
 		var button: Button = talent_buttons[talent_id]
 		button.pressed.connect(_on_talent_button_pressed.bind(talent_id))
-	if equipment_panel.has_signal("item_selected"):
-		equipment_panel.item_selected.connect(func(item: Resource) -> void: forge_panel.set_selected_item(item))
+	if equipment_panel.has_signal("send_to_forge_requested"):
+		equipment_panel.send_to_forge_requested.connect(_on_equipment_send_to_forge_requested)
 	_refresh_language_options()
 	_refresh_all_text()
 
@@ -146,12 +146,22 @@ func bind_meta_progression(service: Node) -> void:
 func set_forge_available(available: bool) -> void:
 	forge_button.disabled = not available
 	forge_button.text = _t("ui.forge", "Forge") if available else _t("ui.forge_locked", "Forge Locked")
+	if equipment_panel != null and equipment_panel.has_method("set_forge_available"):
+		equipment_panel.set_forge_available(available)
 	if not available:
 		forge_panel.visible = false
+		if forge_panel.has_method("clear_selected_item"):
+			forge_panel.clear_selected_item()
 
 func open_forge_panel() -> void:
 	if forge_button.disabled:
 		return
+	forge_panel.visible = true
+
+func _on_equipment_send_to_forge_requested(item: Resource) -> void:
+	if forge_button.disabled:
+		return
+	forge_panel.set_selected_item(item)
 	forge_panel.visible = true
 
 func _on_health_changed(current: float, maximum: float) -> void:
@@ -315,7 +325,7 @@ func _refresh_all_text() -> void:
 	var talent_title := main_menu_overlay.get_node_or_null("Panel/MarginContainer/VBoxContainer/TalentTitle") as Label
 	if talent_title != null:
 		talent_title.text = _t("camp.talent_title", "Permanent Talents")
-	var equipment_title := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/Title") as Label
+	var equipment_title := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
 	if equipment_title != null:
 		equipment_title.text = _t("ui.equipment", "Equipment")
 	var equipment_close := equipment_panel.get_node_or_null("MarginContainer/VBoxContainer/EquipmentCloseButton") as Button

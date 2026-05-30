@@ -300,8 +300,14 @@ func _assert_event_exit_advances(main: Node, run: Node, player: Node, label: Str
 	var exit_portal = main.get_node("ExitPortal")
 	_require(run.exit_unlocked, "%s should leave the event-room exit unlocked after completion" % label)
 	_require(exit_portal.visible and exit_portal.is_in_group("interactables"), "%s should expose an interactable exit portal" % label)
+	player.global_position = exit_portal.global_position
+	await physics_frame
+	player.refresh_interaction_target()
+	await process_frame
+	_require(player.current_interactable == exit_portal, "%s should select the exit through real overlap refresh" % label)
+	_require(main.get_node("HUD").interaction_label.text.contains("Enter Next Room"), "%s should show the exit prompt near the portal" % label)
 	var before_floor: int = run.current_floor
-	player.force_interact_with(exit_portal)
+	player.force_interact_with(player.current_interactable)
 	await process_frame
 	_require(run.current_floor == before_floor + 1, "%s should allow the player to leave through the exit" % label)
 
@@ -609,8 +615,9 @@ func _assert_meta_menu_and_talents(main: Node) -> void:
 
 func _assert_equipment_detail_ui(main: Node) -> void:
 	var player = main.get_node("Player")
-	var panel = main.get_node("HUD").equipment_panel
-	var forge_panel = main.get_node("HUD").forge_panel
+	var hud = main.get_node("HUD")
+	var panel = hud.equipment_panel
+	var forge_panel = hud.forge_panel
 	var default_detail: String = panel.get_detail_text_for_test()
 	_require(default_detail.contains("Ember Snap"), "Equipment detail should default to current weapon")
 	_require(default_detail.contains("Ember Burst"), "Current weapon detail should show its affix")
@@ -622,25 +629,52 @@ func _assert_equipment_detail_ui(main: Node) -> void:
 	panel.select_item_for_test(volt)
 	var volt_detail: String = panel.get_detail_text_for_test()
 	_require(volt_detail.contains("Volt Spear"), "Selected weapon detail should show name")
+	_require(volt_detail.contains("Compare"), "Selected weapon detail should include comparison text")
 	_require(volt_detail.contains("Storm Chain"), "Volt Spear detail should show Storm Chain")
 	_require(volt_detail.contains("Armor Piercing"), "Volt Spear detail should show Armor Piercing")
 	_require(volt_detail.contains("+0.15 Attack Speed"), "Storm Chain detail should show attack speed modifier")
 	_require(volt_detail.contains("+8% Armor Pierce"), "Armor Piercing detail should show armor pierce modifier")
-	_require(forge_panel.selected_item == volt, "Forge panel should receive selected weapon from equipment panel")
+	_require(forge_panel.selected_item == null, "Forge panel should not change until Send to Forge is used")
+	_require(panel.is_send_to_forge_disabled_for_test(), "Send to Forge should be disabled outside forge rooms")
 
 	var helm := load("res://resources/equipment/ashguard_helm.tres")
 	_require(helm != null, "Ashguard Helm should load for detail UI")
 	_add_inventory_item_for_test(player, helm)
+	panel.set_filter_for_test("weapons")
+	var weapon_names: Array = panel.get_visible_item_names_for_test()
+	_require(weapon_names.has("Volt Spear"), "Weapons filter should include weapons")
+	_require(not weapon_names.has("Ashguard Helm"), "Weapons filter should hide equipment")
+	panel.set_filter_for_test("equipment")
+	var equipment_names: Array = panel.get_visible_item_names_for_test()
+	_require(equipment_names.has("Ashguard Helm"), "Equipment filter should include equipment")
+	_require(not equipment_names.has("Volt Spear"), "Equipment filter should hide weapons")
+	panel.set_filter_for_test("all")
+	panel.set_sort_for_test("name")
+	var sorted_names: Array = panel.get_visible_item_names_for_test()
+	_require(sorted_names.size() >= 3 and sorted_names[0] == "Ashguard Helm", "Name sorting should be stable and alphabetical")
 	panel.select_item_for_test(helm)
 	var helm_detail: String = panel.get_detail_text_for_test()
 	_require(helm_detail.contains("Ashguard Helm"), "Selected equipment detail should show name")
+	_require(helm_detail.contains("Compare"), "Selected equipment detail should include comparison text")
 	_require(helm_detail.contains("Helmet"), "Selected equipment detail should show slot")
 	_require(helm_detail.contains("+10 Max Health"), "Selected equipment detail should show stat modifiers")
-	_require(forge_panel.selected_item == helm, "Forge panel should receive selected equipment from equipment panel")
+	_require(not panel.is_equip_disabled_for_test(), "Equip should be enabled for unequipped inventory equipment")
+	panel.equip_selected_for_test()
+	_require(player.equipped.has(0) and player.equipped[0] == helm, "Equip should place selected equipment into its slot")
+	panel.select_slot_for_test(0)
+	_require(panel.get_detail_text_for_test().contains("Currently equipped"), "Clicking an equipped slot should show current equipment state")
+	_require(panel.is_equip_disabled_for_test(), "Equip should disable for already equipped slot selections")
+
+	hud.set_forge_available(true)
+	panel.select_item_for_test(volt)
+	_require(not panel.is_send_to_forge_disabled_for_test(), "Send to Forge should enable in forge rooms for valid selections")
+	panel.send_selected_to_forge_for_test()
+	_require(forge_panel.selected_item == volt, "Forge panel should receive selected weapon only from Send to Forge")
 	forge_panel.set_selected_item(volt)
 	player.apply_enhancement_result(volt, {"success": false, "level": -1})
 	_require(forge_panel.selected_item == null, "Forge panel should clear a broken or removed item")
 	_require(forge_panel.forge_button.disabled, "Forge button should disable after selected item is removed")
+	hud.set_forge_available(false)
 
 func _add_inventory_item_for_test(player: Node, item: Resource) -> void:
 	if player.inventory.has(item):
@@ -688,7 +722,7 @@ func _assert_pickup_preview_and_interaction(main: Node) -> void:
 	_require(hud.is_pickup_preview_visible_for_test(), "Equipment pickup should show the preview panel")
 	var equipment_preview: String = hud.get_pickup_preview_text_for_test()
 	_require(equipment_preview.contains("Pickup: Ashguard Helm"), "Equipment preview should name the pickup")
-	_require(equipment_preview.contains("Current: None"), "Equipment preview should compare against the matching empty slot")
+	_require(equipment_preview.contains("Current: Ashguard Helm"), "Equipment preview should compare against the matching equipped slot")
 	_require(equipment_preview.contains("Max Health"), "Equipment preview should include stat comparison")
 	player.force_interact_with(equipment_pickup)
 	await process_frame
@@ -803,9 +837,10 @@ func _assert_readable_ui_thresholds(main: Node) -> void:
 	_require(hud.health_label.get_theme_font_size("font_size") >= 20, "HUD labels should use readable font sizes")
 	_require(hud.equipment_button.get_theme_font_size("font_size") >= 20, "HUD buttons should use readable font sizes")
 	_require(hud.equipment_button.custom_minimum_size.y >= 44.0, "HUD buttons should have larger touch targets")
-	_require(hud.equipment_panel.detail_text.custom_minimum_size.y <= 112.0, "Equipment detail area should stay compact after the usability pass")
+	_require(hud.equipment_panel.detail_text.custom_minimum_size.y >= 240.0, "Equipment v2 detail area should be readable and scrollable")
 	_require(hud.equipment_panel.inventory_list.auto_height == false, "Equipment inventory list should keep a fixed scrollable height")
 	_require(hud.equipment_panel.close_button != null, "Equipment panel should expose an internal close button")
+	_require(hud.equipment_panel.send_to_forge_button != null, "Equipment panel should expose Send to Forge")
 	_require(hud.pickup_preview_text.get_theme_font_size("normal_font_size") >= 18, "Pickup preview text should be readable")
 
 	var pickup_scene := load("res://scenes/items/Pickup.tscn")

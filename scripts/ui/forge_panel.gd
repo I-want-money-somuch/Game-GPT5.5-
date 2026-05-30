@@ -35,7 +35,11 @@ func refresh_for_language() -> void:
 	_refresh()
 
 func set_selected_item(item: Resource) -> void:
-	selected_item = item
+	selected_item = item if _can_forge_item(item) else null
+	_refresh()
+
+func clear_selected_item() -> void:
+	selected_item = null
 	_refresh()
 
 func _on_forge_pressed() -> void:
@@ -56,7 +60,7 @@ func _on_forge_pressed() -> void:
 	_refresh()
 
 func _refresh() -> void:
-	if selected_item != null and player != null and not _player_has_item(selected_item):
+	if selected_item != null and not _can_forge_item(selected_item):
 		selected_item = null
 	if selected_item == null or player == null:
 		selected_label.text = _t("forge.selected_empty", "Selected: -")
@@ -95,6 +99,9 @@ func _player_has_item(item: Resource) -> bool:
 			return true
 	return false
 
+func _can_forge_item(item: Resource) -> bool:
+	return item != null and _player_has_item(item) and (item.has_method("create_damage_packet") or item.has_method("get_slot_name"))
+
 func _failure_name(value: int) -> String:
 	match value:
 		EnhancementCurveScript.FailureOutcome.MATERIAL_LOSS:
@@ -124,3 +131,9 @@ func _resource_name(resource: Resource) -> String:
 	if resource == null:
 		return ""
 	return str(resource.get("display_name"))
+
+func selected_item_for_test() -> Resource:
+	return selected_item
+
+func forge_once_for_test() -> void:
+	_on_forge_pressed()

@@ -44,6 +44,13 @@ static func format_pickup_comparison(item: Resource, player: Node = null, locali
 		return _format_equipment_pickup_comparison(item, player, localization_service)
 	return format_item(item, player, localization_service)
 
+static func format_equipment_panel_detail(item: Resource, player: Node = null, localization_service: Node = null) -> String:
+	if item == null:
+		return _t(localization_service, "item.no_selected", "No item selected.\nPick up or select an item to inspect its build value.")
+	if _is_equipped_item(item, player):
+		return "%s\n\n%s" % [format_item(item, player, localization_service), _t(localization_service, "equipment.currently_equipped", "Currently equipped")]
+	return "%s\n\n%s" % [format_pickup_comparison(item, player, localization_service), format_item(item, player, localization_service)]
+
 static func _format_weapon(item: Resource, player: Node, localization_service: Node) -> String:
 	var lines := PackedStringArray()
 	lines.append("%s  +%d" % [_name(item, localization_service), _enhancement_level(item, player)])
@@ -231,6 +238,17 @@ static func _weapon_attack_rate(item: Resource, player: Node) -> float:
 	if player != null and player.has_method("attack_rate_for_weapon"):
 		return player.attack_rate_for_weapon(item)
 	return float(item.get("attack_rate"))
+
+static func _is_equipped_item(item: Resource, player: Node) -> bool:
+	if item == null or player == null:
+		return false
+	if player.get("active_weapon") == item:
+		return true
+	if player.get("equipped") != null:
+		for equipped_item in player.equipped.values():
+			if equipped_item == item:
+				return true
+	return false
 
 static func _affix_names(affixes: Array, localization_service: Node) -> String:
 	if affixes.is_empty():

@@ -152,10 +152,11 @@ func collect_item(item: Resource) -> void:
 func force_interact_with(interactable: Node) -> void:
 	if interactable != null and _can_use_interactable(interactable):
 		interactable.interact(self)
-		_refresh_interactable_prompt()
+		_refresh_interactable_prompt(true)
 
 func refresh_interaction_target() -> void:
-	_refresh_interactable_prompt()
+	_rescan_interaction_overlaps()
+	_refresh_interactable_prompt(true)
 
 func equip_weapon(weapon: Resource) -> void:
 	active_weapon = weapon
@@ -377,7 +378,7 @@ func _handle_interaction_input() -> void:
 	interact_key_was_pressed = pressed
 
 func _try_interact() -> void:
-	_refresh_interactable_prompt()
+	_refresh_interactable_prompt(true)
 	if current_interactable == null:
 		return
 	force_interact_with(current_interactable)
@@ -387,32 +388,36 @@ func _on_interaction_area_entered(area: Area2D) -> void:
 		return
 	if not nearby_interactables.has(area):
 		nearby_interactables.append(area)
-	_refresh_interactable_prompt()
+	_refresh_interactable_prompt(true)
 
 func _on_interaction_area_exited(area: Area2D) -> void:
 	nearby_interactables.erase(area)
 	if current_interactable == area:
 		current_interactable = null
 		current_interactable_changed.emit(null)
-	_refresh_interactable_prompt()
+	_refresh_interactable_prompt(true)
 
-func _refresh_interactable_prompt() -> void:
-	nearby_interactables = nearby_interactables.filter(func(item: Node) -> bool:
-		return is_instance_valid(item) and _can_use_interactable(item)
+func _refresh_interactable_prompt(force_emit := false) -> void:
+	_rescan_interaction_overlaps()
+	nearby_interactables = nearby_interactables.filter(func(item) -> bool:
+		return is_instance_valid(item) and _can_use_interactable(item) and _is_interactable_near(item)
 	)
 
 	var nearest: Node
+	var nearest_priority := -INF
 	var nearest_distance := INF
 	for item in nearby_interactables:
 		var node := item as Node2D
 		if node == null:
 			continue
+		var priority := _interaction_priority(item)
 		var distance := global_position.distance_squared_to(node.global_position)
-		if distance < nearest_distance:
+		if priority > nearest_priority or (is_equal_approx(priority, nearest_priority) and distance < nearest_distance):
 			nearest = item
+			nearest_priority = priority
 			nearest_distance = distance
 
-	if current_interactable == nearest:
+	if current_interactable == nearest and not force_emit:
 		return
 
 	current_interactable = nearest
@@ -430,6 +435,53 @@ func _can_use_interactable(interactable: Node) -> bool:
 	if not interactable.has_method("can_interact") or not interactable.has_method("interact"):
 		return false
 	return bool(interactable.can_interact(self))
+
+func _rescan_interaction_overlaps() -> void:
+	var area := _interaction_area()
+	if area == null:
+		return
+	for candidate in area.get_overlapping_areas():
+		if candidate != null and candidate.is_in_group("interactables") and not nearby_interactables.has(candidate):
+			nearby_interactables.append(candidate)
+	var scan_radius := _interaction_scan_radius()
+	var scan_radius_squared := scan_radius * scan_radius
+	for candidate in get_tree().get_nodes_in_group("interactables"):
+		var node := candidate as Node2D
+		if node != null and global_position.distance_squared_to(node.global_position) <= scan_radius_squared and not nearby_interactables.has(node):
+			nearby_interactables.append(node)
+
+func _interaction_priority(interactable: Node) -> float:
+	if interactable == null:
+		return 0.0
+	if interactable.has_method("get_interaction_priority"):
+		return float(interactable.get_interaction_priority())
+	if interactable is ExitPortal:
+		return 100.0
+	if interactable is RewardChest:
+		return 80.0
+	if interactable is EventStation:
+		return 70.0
+	if interactable is ForgeStation:
+		return 60.0
+	if interactable is Pickup:
+		return 10.0
+	return 0.0
+
+func _is_interactable_near(interactable: Node) -> bool:
+	var node := interactable as Node2D
+	if node == null:
+		return false
+	var scan_radius := _interaction_scan_radius()
+	return global_position.distance_squared_to(node.global_position) <= scan_radius * scan_radius
+
+func _interaction_scan_radius() -> float:
+	var area := _interaction_area()
+	if area == null:
+		return 72.0
+	var collision := area.get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if collision != null and collision.shape is CircleShape2D:
+		return maxf((collision.shape as CircleShape2D).radius + 34.0, 72.0)
+	return 72.0
 
 func _current_stats(weapon: Resource = null) -> Dictionary:
 	var stats := {
