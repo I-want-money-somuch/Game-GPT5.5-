@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_orbit_signet"]
+script = ExtResource("2")
+armor_durability = 24.0
+crit_chance = 0.04
+armor_pierce = 0.05
+
+[resource]
+script = ExtResource("1")
+id = &"orbit_signet"
+display_name = "Orbit Signet"
+description = "A ring etched with orbital marks for precise armor-breaking shots."
+slot = 5
+rarity = 1
+stat_modifiers = SubResource("StatBlock_orbit_signet")

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_astral_weave_grips"]
+script = ExtResource("2")
+crit_damage = 0.22
+attack_speed = 0.22
+
+[resource]
+script = ExtResource("1")
+id = &"astral_weave_grips"
+display_name = "Astral Weave Grips"
+description = "Soft grip wraps that make rapid arcane bursts easier to control."
+slot = 2
+rarity = 1
+stat_modifiers = SubResource("StatBlock_astral_weave_grips")

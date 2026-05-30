@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RoomEventDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_event_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_starless_lens"]
+script = ExtResource("2")
+crit_chance = 0.08
+crit_damage = 0.25
+
+[resource]
+script = ExtResource("1")
+id = &"starless_lens"
+display_name = "Starless Lens"
+prompt_text = "Gaze Through Starless Lens"
+description = "Trade blood for sharper void-critical timing this run."
+event_color = Color(0.5, 0.26, 0.95, 1)
+hp_cost = 16.0
+stat_modifiers = SubResource("StatBlock_starless_lens")

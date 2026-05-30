@@ -5,8 +5,8 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 ## Current vertical slice
 
 - One playable class: Vanguard
-- Three starter/drop weapons
-- Five equipment definitions
+- Seven starter/drop weapons
+- Eleven equipment definitions
 - Three normal enemies
 - One mini boss and one boss
 - Ten-floor run director
@@ -17,6 +17,7 @@ Original Godot 4.x top-down action roguelite dungeon looter prototype.
 - In-run event room with shrine and trial interactables
 - Interactable pickups with weapon/equipment comparison preview
 - Original 32px pixel placeholder art for core actors, interactables, projectiles, and the dungeon floor
+- Void arcana build drops with echo and gravity weapon affixes
 
 ## Architecture goals
 
@@ -84,3 +85,5 @@ The event room uses run-only risk/reward choices:
 - Ember Pact trades current health for run-long damage.
 - Iron Oath spends armor durability for armor and armor pierce.
 - Trial Altar locks the exit, spawns an elite Iron Husk, then opens a bonus chest.
+- Starless Lens trades current health for critical void pressure.
+- Rift Anchor spends armor durability for damage and armor pierce at a movement cost.

@@ -43,6 +43,7 @@ func _run() -> void:
 	_assert_equipment_detail_ui(main)
 	await _assert_pickup_preview_and_interaction(main)
 	await _assert_runtime_localization(main)
+	await _assert_void_arcana_content(main)
 	await _assert_readable_ui_thresholds(main)
 	_require(main.get_node("ExitPortal").visible == false, "Exit should start locked in combat rooms")
 	for enemy in run.live_enemies:
@@ -497,11 +498,21 @@ func _assert_localization_coverage(localization: Node) -> void:
 		"res://resources/weapons/frostline_staff.tres",
 		"res://resources/weapons/volt_spear.tres",
 		"res://resources/weapons/boss/warden_rift_staff.tres",
+		"res://resources/weapons/rift_needle.tres",
+		"res://resources/weapons/null_orbit_staff.tres",
+		"res://resources/weapons/astral_repeater.tres",
+		"res://resources/weapons/phase_halberd.tres",
 		"res://resources/equipment/ashguard_helm.tres",
 		"res://resources/equipment/rivet_chestplate.tres",
 		"res://resources/equipment/quickspark_gloves.tres",
 		"res://resources/equipment/trailblazer_boots.tres",
 		"res://resources/equipment/lumen_ring.tres",
+		"res://resources/equipment/riftseer_hood.tres",
+		"res://resources/equipment/voidglass_mantle.tres",
+		"res://resources/equipment/astral_weave_grips.tres",
+		"res://resources/equipment/phasewalk_soles.tres",
+		"res://resources/equipment/singularity_charm.tres",
+		"res://resources/equipment/orbit_signet.tres",
 		"res://resources/equipment/boss/cinderplate_core.tres",
 		"res://resources/equipment/boss/bulwark_ember_ring.tres",
 		"res://resources/equipment/boss/abyssal_guard_helm.tres",
@@ -509,6 +520,8 @@ func _assert_localization_coverage(localization: Node) -> void:
 		"res://resources/affixes/ember_burst.tres",
 		"res://resources/affixes/frostbite.tres",
 		"res://resources/affixes/storm_chain.tres",
+		"res://resources/affixes/rift_echo.tres",
+		"res://resources/affixes/gravity_well.tres",
 		"res://resources/enemies/ashling.tres",
 		"res://resources/enemies/glassmite.tres",
 		"res://resources/enemies/iron_husk.tres",
@@ -522,6 +535,8 @@ func _assert_localization_coverage(localization: Node) -> void:
 		"res://resources/events/ember_pact.tres",
 		"res://resources/events/iron_oath.tres",
 		"res://resources/events/trial_altar.tres",
+		"res://resources/events/starless_lens.tres",
+		"res://resources/events/rift_anchor.tres",
 	]
 	var room_resources := [
 		"res://resources/dungeon/combat_room.tres",
@@ -709,6 +724,79 @@ func _assert_runtime_localization(main: Node) -> void:
 	main.select_language_for_test("en")
 	await process_frame
 	_require(hud.health_label.text.contains("HP"), "HUD health label should return to English")
+
+func _assert_void_arcana_content(main: Node) -> void:
+	var hud = main.get_node("HUD")
+	var player = main.get_node("Player")
+	var localization = main.get_node("LocalizationService")
+	var loot_table := load("res://resources/loot_tables/mvp_loot_table.tres")
+	_require(loot_table != null, "Loot table should load for void arcana content")
+
+	var weapon_paths := [
+		"res://resources/weapons/rift_needle.tres",
+		"res://resources/weapons/null_orbit_staff.tres",
+		"res://resources/weapons/astral_repeater.tres",
+		"res://resources/weapons/phase_halberd.tres",
+	]
+	var equipment_paths := [
+		"res://resources/equipment/riftseer_hood.tres",
+		"res://resources/equipment/voidglass_mantle.tres",
+		"res://resources/equipment/astral_weave_grips.tres",
+		"res://resources/equipment/phasewalk_soles.tres",
+		"res://resources/equipment/singularity_charm.tres",
+		"res://resources/equipment/orbit_signet.tres",
+	]
+	var affix_paths := [
+		"res://resources/affixes/rift_echo.tres",
+		"res://resources/affixes/gravity_well.tres",
+	]
+	var event_paths := [
+		"res://resources/events/starless_lens.tres",
+		"res://resources/events/rift_anchor.tres",
+	]
+	var loot_ids := []
+	for entry in loot_table.entries:
+		if entry != null and entry.get("item") != null:
+			loot_ids.append(entry.get("item").get("id"))
+
+	for path in weapon_paths + equipment_paths:
+		var item: Resource = load(path)
+		_require(item != null, "%s should load" % path)
+		_require(loot_ids.has(item.get("id")), "%s should be present in the global loot table" % item.get("id"))
+	for path in affix_paths:
+		var affix: Resource = load(path)
+		_require(affix != null and not str(affix.get("effect_id")).is_empty(), "%s should load with an effect id" % path)
+	for path in event_paths:
+		var event: Resource = load(path)
+		_require(event != null and event.has_method("get_prompt"), "%s should load as an event definition" % path)
+
+	var null_staff := load("res://resources/weapons/null_orbit_staff.tres")
+	_add_inventory_item_for_test(player, null_staff)
+	hud.equipment_panel.select_item_for_test(null_staff)
+	var staff_detail: String = hud.equipment_panel.get_detail_text_for_test()
+	_require(staff_detail.contains("Null Orbit Staff"), "Void arcana weapon detail should show weapon name")
+	_require(staff_detail.contains("Gravity Well"), "Void arcana weapon detail should show Gravity Well")
+	_require(staff_detail.contains("14% Gravity Well"), "Gravity Well detail should show proc chance")
+
+	var charm := load("res://resources/equipment/singularity_charm.tres")
+	_add_inventory_item_for_test(player, charm)
+	hud.equipment_panel.select_item_for_test(charm)
+	var charm_detail: String = hud.equipment_panel.get_detail_text_for_test()
+	_require(charm_detail.contains("Singularity Charm"), "Void arcana equipment detail should show equipment name")
+	_require(charm_detail.contains("+8% Damage"), "Singularity Charm should show damage modifier")
+	_require(charm_detail.contains("+0.26 Energy Recovery"), "Singularity Charm should show energy recovery modifier")
+
+	main.select_language_for_test("zh_CN")
+	await process_frame
+	var rift_needle := load("res://resources/weapons/rift_needle.tres")
+	_add_inventory_item_for_test(player, rift_needle)
+	hud.equipment_panel.select_item_for_test(rift_needle)
+	var zh_detail: String = hud.equipment_panel.get_detail_text_for_test()
+	_require(zh_detail.contains("裂隙针"), "Void arcana weapon name should localize to Chinese")
+	_require(zh_detail.contains("裂隙回响"), "Rift Echo affix should localize to Chinese")
+	_require(localization.resource_name(load("res://resources/events/starless_lens.tres")) == "无星透镜", "Void arcana event should localize to Chinese")
+	main.select_language_for_test("en")
+	await process_frame
 
 func _assert_readable_ui_thresholds(main: Node) -> void:
 	var hud = main.get_node("HUD")

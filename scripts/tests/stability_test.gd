@@ -188,11 +188,14 @@ func _assert_weapon_affix_effect_runtime() -> void:
 	await _assert_fire_burst_effect()
 	await _assert_frostbite_effect()
 	await _assert_chain_lightning_effect()
+	await _assert_rift_echo_effect()
+	await _assert_gravity_well_effect()
 
 func _assert_event_room_runtime() -> void:
 	await _assert_event_cost_guards()
 	await _assert_event_one_shot()
 	await _assert_trial_event_flow()
+	await _assert_void_arcana_events()
 
 func _assert_settings_pause_runtime() -> void:
 	var main := await _instantiate_main()
@@ -239,6 +242,29 @@ func _assert_event_cost_guards() -> void:
 	_require(is_equal_approx(armor.max_armor, armor_before), "Failed Iron Oath should not grant armor")
 	_require(iron_station.is_in_group("interactables"), "Failed Iron Oath should remain available")
 	_cleanup_event_fixture(iron_fixture)
+
+	var lens_fixture := await _spawn_event_fixture(load("res://resources/events/starless_lens.tres"))
+	var lens_player = lens_fixture["player"]
+	var lens_station = lens_fixture["station"]
+	lens_player.health = 10.0
+	lens_station.interact(lens_player)
+	await process_frame
+	_require(is_equal_approx(lens_player.health, 10.0), "Starless Lens should not trigger when it would kill the player")
+	_require(lens_station.is_in_group("interactables"), "Failed Starless Lens should remain available")
+	_cleanup_event_fixture(lens_fixture)
+
+	var anchor_fixture := await _spawn_event_fixture(load("res://resources/events/rift_anchor.tres"))
+	var anchor_player = anchor_fixture["player"]
+	var anchor_station = anchor_fixture["station"]
+	var anchor_armor = anchor_player.armor_component
+	var anchor_armor_before: float = anchor_armor.max_armor
+	anchor_armor.current_durability = 5.0
+	anchor_station.interact(anchor_player)
+	await process_frame
+	_require(is_equal_approx(anchor_armor.current_durability, 5.0), "Rift Anchor should not spend insufficient armor durability")
+	_require(is_equal_approx(anchor_armor.max_armor, anchor_armor_before), "Failed Rift Anchor should not grant armor")
+	_require(anchor_station.is_in_group("interactables"), "Failed Rift Anchor should remain available")
+	_cleanup_event_fixture(anchor_fixture)
 
 func _assert_event_one_shot() -> void:
 	var fixture := await _spawn_event_fixture(load("res://resources/events/ember_pact.tres"))
@@ -300,6 +326,48 @@ func _assert_event_exit_advances(fixture: Dictionary, label: String) -> void:
 	await process_frame
 	_require(run.current_floor == before_floor + 1, "%s should allow exit interaction after completion" % label)
 
+func _assert_void_arcana_events() -> void:
+	var lens_fixture := await _spawn_event_fixture(load("res://resources/events/starless_lens.tres"))
+	var lens_player = lens_fixture["player"]
+	var lens_station = lens_fixture["station"]
+	var lens_weapon := load("res://resources/weapons/ember_snap.tres")
+	var lens_health_before: float = lens_player.health
+	var lens_packet_before = lens_weapon.create_damage_packet(lens_player)
+	lens_player.modify_outgoing_packet(lens_packet_before, lens_weapon)
+	lens_station.interact(lens_player)
+	await process_frame
+	var lens_packet_after = lens_weapon.create_damage_packet(lens_player)
+	lens_player.modify_outgoing_packet(lens_packet_after, lens_weapon)
+	_require(is_equal_approx(lens_player.health, lens_health_before - 16.0), "Starless Lens should spend current health")
+	_require(lens_packet_after.crit_chance >= lens_packet_before.crit_chance + 0.07, "Starless Lens should increase crit chance")
+	_require(lens_packet_after.crit_multiplier >= lens_packet_before.crit_multiplier + 0.24, "Starless Lens should increase crit damage")
+	lens_station.interact(lens_player)
+	await process_frame
+	_require(is_equal_approx(lens_player.health, lens_health_before - 16.0), "Starless Lens should only spend health once")
+	_cleanup_event_fixture(lens_fixture)
+
+	var anchor_fixture := await _spawn_event_fixture(load("res://resources/events/rift_anchor.tres"))
+	var anchor_player = anchor_fixture["player"]
+	var anchor_station = anchor_fixture["station"]
+	var anchor_weapon := load("res://resources/weapons/ember_snap.tres")
+	var anchor_armor = anchor_player.armor_component
+	var durability_before: float = anchor_armor.current_durability
+	var speed_before: float = anchor_player.move_speed
+	var anchor_packet_before = anchor_weapon.create_damage_packet(anchor_player)
+	anchor_player.modify_outgoing_packet(anchor_packet_before, anchor_weapon)
+	anchor_station.interact(anchor_player)
+	await process_frame
+	var anchor_packet_after = anchor_weapon.create_damage_packet(anchor_player)
+	anchor_player.modify_outgoing_packet(anchor_packet_after, anchor_weapon)
+	_require(is_equal_approx(anchor_armor.current_durability, durability_before - 22.0), "Rift Anchor should spend armor durability")
+	_require(anchor_packet_after.amount > anchor_packet_before.amount * 1.09, "Rift Anchor should increase damage")
+	_require(anchor_packet_after.armor_pierce >= anchor_packet_before.armor_pierce + 0.07, "Rift Anchor should increase armor pierce")
+	_require(anchor_player.move_speed < speed_before, "Rift Anchor should reduce move speed")
+	anchor_station.interact(anchor_player)
+	await process_frame
+	_require(is_equal_approx(anchor_armor.current_durability, durability_before - 22.0), "Rift Anchor should only spend armor durability once")
+	_cleanup_event_fixture(anchor_fixture)
+
 func _assert_fire_burst_effect() -> void:
 	var fixture := await _spawn_affix_fixture(3)
 	var service: Node = fixture["service"]
@@ -353,6 +421,54 @@ func _assert_chain_lightning_effect() -> void:
 	_require(first_chain.health < first_before, "Chain lightning should hit first nearby enemy")
 	_require(second_chain.health < second_before, "Chain lightning should hit second nearby enemy")
 	_require(is_equal_approx(third_candidate.health, third_before), "Chain lightning should stop after two extra targets")
+	_cleanup_affix_fixture(fixture)
+
+func _assert_rift_echo_effect() -> void:
+	var fixture := await _spawn_affix_fixture(1)
+	var service: Node = fixture["service"]
+	var player: Node = fixture["player"]
+	var enemy: Node = fixture["enemies"][0]
+	var before_health: float = enemy.health
+	var packet := _damage_packet(player, 30.0, enemy.global_position)
+	var triggered: Array = service.force_weapon_effect(player, load("res://resources/weapons/rift_needle.tres"), enemy, packet, &"rift_echo")
+	_require(triggered.has(&"rift_echo"), "Rift Echo should be force-triggerable")
+	_require(_runtime_node_count() > 0, "Rift Echo should spawn a visible delayed echo")
+	await create_timer(0.3).timeout
+	_require(enemy.health < before_health, "Rift Echo should apply delayed arcane damage")
+	_cleanup_affix_fixture(fixture)
+
+func _assert_gravity_well_effect() -> void:
+	var fixture := await _spawn_affix_fixture(5)
+	var service: Node = fixture["service"]
+	var player: Node = fixture["player"]
+	var enemies: Array = fixture["enemies"]
+	var primary: Node = enemies[0]
+	var first_pull: Node = enemies[1]
+	var second_pull: Node = enemies[2]
+	var third_candidate: Node = enemies[3]
+	var dead_target: Node = enemies[4]
+	primary.global_position = Vector2(300, 240)
+	first_pull.global_position = Vector2(324, 240)
+	second_pull.global_position = Vector2(348, 240)
+	third_candidate.global_position = Vector2(372, 240)
+	dead_target.global_position = Vector2(336, 240)
+	dead_target.is_dead = true
+	var primary_before: float = primary.health
+	var first_before: float = first_pull.health
+	var second_before: float = second_pull.health
+	var third_before: float = third_candidate.health
+	var dead_before: float = dead_target.health
+	var packet := _damage_packet(player, 30.0, primary.global_position)
+	var triggered: Array = service.force_weapon_effect(player, load("res://resources/weapons/null_orbit_staff.tres"), primary, packet, &"gravity_well")
+	_require(triggered.has(&"gravity_well"), "Gravity Well should be force-triggerable")
+	_require(_runtime_node_count() > 0, "Gravity Well should spawn a visible warning area")
+	await create_timer(0.28).timeout
+	_require(primary.health < primary_before, "Gravity Well should damage the primary target in the radius")
+	_require(first_pull.health < first_before, "Gravity Well should damage a nearby living enemy")
+	_require(second_pull.health < second_before, "Gravity Well should damage up to three living enemies")
+	_require(is_equal_approx(third_candidate.health, third_before), "Gravity Well should stop after three living targets")
+	_require(is_equal_approx(dead_target.health, dead_before), "Gravity Well should not damage already dead enemies")
+	_require(first_pull.knockback_velocity.x < 0.0, "Gravity Well should pull enemies toward its center")
 	_cleanup_affix_fixture(fixture)
 
 func _assert_boss_room_regression(floor: int, boss_id: StringName, exclusive_item_ids: Array, should_complete: bool) -> void:

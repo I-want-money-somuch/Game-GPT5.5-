@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_phasewalk_soles"]
+script = ExtResource("2")
+move_speed = 18.0
+dodge_chance = 0.07
+
+[resource]
+script = ExtResource("1")
+id = &"phasewalk_soles"
+display_name = "Phasewalk Soles"
+description = "Boot soles that slip slightly out of phase during lateral movement."
+slot = 3
+rarity = 1
+stat_modifiers = SubResource("StatBlock_phasewalk_soles")

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_riftseer_hood"]
+script = ExtResource("2")
+max_health = 6.0
+crit_chance = 0.05
+skill_cooldown_reduction = 0.07
+
+[resource]
+script = ExtResource("1")
+id = &"riftseer_hood"
+display_name = "Riftseer Hood"
+description = "A hood lined with glassy thread for reading void afterimages."
+slot = 0
+rarity = 1
+stat_modifiers = SubResource("StatBlock_riftseer_hood")

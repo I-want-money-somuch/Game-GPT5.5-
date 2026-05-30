@@ -145,6 +145,10 @@ static func _affix_effect_line(affix: Resource, localization_service: Node) -> S
 			return _lf(localization_service, "affix.frostbite_effect", [_percent(chance)], "%s Frostbite Slow")
 		&"chain_lightning":
 			return _lf(localization_service, "affix.chain_lightning_effect", [_percent(chance)], "%s Chain Lightning")
+		&"rift_echo":
+			return _lf(localization_service, "affix.rift_echo_effect", [_percent(chance)], "%s Rift Echo")
+		&"gravity_well":
+			return _lf(localization_service, "affix.gravity_well_effect", [_percent(chance)], "%s Gravity Well")
 	if chance > 0.0:
 		return _lf(localization_service, "affix.proc_effect", [_percent(chance)], "%s proc")
 	return _t(localization_service, "affix.passive", "Passive")

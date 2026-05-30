@@ -15,6 +15,7 @@
 - Main menu camp, run settlement rewards, JSON profile saving, and first permanent talents
 - In-run event room with data-driven event stations, temporary run rewards, and a Trial Altar ambush
 - Interactable loot pickups with weapon/equipment comparison preview and larger placeholder UI
+- Void arcana build content with new weapons, equipment, events, and weapon affixes
 
 ## Next priorities
 

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RoomEventDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/room_event_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_rift_anchor"]
+script = ExtResource("2")
+damage_multiplier = 0.1
+armor_pierce = 0.08
+move_speed = -8.0
+
+[resource]
+script = ExtResource("1")
+id = &"rift_anchor"
+display_name = "Rift Anchor"
+prompt_text = "Bind Rift Anchor"
+description = "Scar your armor with a void anchor for heavier armor-breaking power."
+event_color = Color(0.34, 0.18, 0.82, 1)
+armor_durability_cost = 22.0
+stat_modifiers = SubResource("StatBlock_rift_anchor")

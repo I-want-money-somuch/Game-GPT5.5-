@@ -9,6 +9,16 @@
 [ext_resource type="Resource" uid="uid://cuq7c0bxgub3h" path="res://resources/equipment/quickspark_gloves.tres" id="7"]
 [ext_resource type="Resource" uid="uid://c5vtdw3mvrst8" path="res://resources/equipment/trailblazer_boots.tres" id="8"]
 [ext_resource type="Resource" uid="uid://bj1olms6ig0d4" path="res://resources/equipment/lumen_ring.tres" id="9"]
+[ext_resource type="Resource" path="res://resources/weapons/rift_needle.tres" id="10"]
+[ext_resource type="Resource" path="res://resources/weapons/null_orbit_staff.tres" id="11"]
+[ext_resource type="Resource" path="res://resources/weapons/astral_repeater.tres" id="12"]
+[ext_resource type="Resource" path="res://resources/weapons/phase_halberd.tres" id="13"]
+[ext_resource type="Resource" path="res://resources/equipment/riftseer_hood.tres" id="14"]
+[ext_resource type="Resource" path="res://resources/equipment/voidglass_mantle.tres" id="15"]
+[ext_resource type="Resource" path="res://resources/equipment/astral_weave_grips.tres" id="16"]
+[ext_resource type="Resource" path="res://resources/equipment/phasewalk_soles.tres" id="17"]
+[ext_resource type="Resource" path="res://resources/equipment/singularity_charm.tres" id="18"]
+[ext_resource type="Resource" path="res://resources/equipment/orbit_signet.tres" id="19"]
 
 [sub_resource type="Resource" id="LootEntry_frostline_staff"]
 script = ExtResource("2")
@@ -55,7 +65,77 @@ drop_chance = 0.16
 weight = 8
 min_floor = 4
 
+[sub_resource type="Resource" id="LootEntry_rift_needle"]
+script = ExtResource("2")
+item = ExtResource("10")
+drop_chance = 0.11
+weight = 6
+min_floor = 4
+
+[sub_resource type="Resource" id="LootEntry_null_orbit_staff"]
+script = ExtResource("2")
+item = ExtResource("11")
+drop_chance = 0.1
+weight = 5
+min_floor = 5
+
+[sub_resource type="Resource" id="LootEntry_astral_repeater"]
+script = ExtResource("2")
+item = ExtResource("12")
+drop_chance = 0.14
+weight = 8
+min_floor = 2
+
+[sub_resource type="Resource" id="LootEntry_phase_halberd"]
+script = ExtResource("2")
+item = ExtResource("13")
+drop_chance = 0.09
+weight = 5
+min_floor = 6
+
+[sub_resource type="Resource" id="LootEntry_riftseer_hood"]
+script = ExtResource("2")
+item = ExtResource("14")
+drop_chance = 0.18
+weight = 9
+min_floor = 2
+
+[sub_resource type="Resource" id="LootEntry_voidglass_mantle"]
+script = ExtResource("2")
+item = ExtResource("15")
+drop_chance = 0.16
+weight = 8
+min_floor = 3
+
+[sub_resource type="Resource" id="LootEntry_astral_weave_grips"]
+script = ExtResource("2")
+item = ExtResource("16")
+drop_chance = 0.18
+weight = 9
+min_floor = 2
+
+[sub_resource type="Resource" id="LootEntry_phasewalk_soles"]
+script = ExtResource("2")
+item = ExtResource("17")
+drop_chance = 0.18
+weight = 9
+min_floor = 3
+
+[sub_resource type="Resource" id="LootEntry_singularity_charm"]
+script = ExtResource("2")
+item = ExtResource("18")
+drop_chance = 0.1
+weight = 5
+min_floor = 5
+
+[sub_resource type="Resource" id="LootEntry_orbit_signet"]
+script = ExtResource("2")
+item = ExtResource("19")
+drop_chance = 0.14
+weight = 7
+min_floor = 4
+
 [resource]
 script = ExtResource("1")
 id = &"mvp_loot_table"
-entries = Array[Resource]([SubResource("LootEntry_frostline_staff"), SubResource("LootEntry_volt_spear"), SubResource("LootEntry_ashguard_helm"), SubResource("LootEntry_rivet_chestplate"), SubResource("LootEntry_quickspark_gloves"), SubResource("LootEntry_trailblazer_boots"), SubResource("LootEntry_lumen_ring")])
+entries = Array[Resource]([SubResource("LootEntry_frostline_staff"), SubResource("LootEntry_volt_spear"), SubResource("LootEntry_ashguard_helm"), SubResource("LootEntry_rivet_chestplate"), SubResource("LootEntry_quickspark_gloves"), SubResource("LootEntry_trailblazer_boots"), SubResource("LootEntry_lumen_ring"), SubResource("LootEntry_rift_needle"), SubResource("LootEntry_null_orbit_staff"), SubResource("LootEntry_astral_repeater"), SubResource("LootEntry_phase_halberd"), SubResource("LootEntry_riftseer_hood"), SubResource("LootEntry_voidglass_mantle"), SubResource("LootEntry_astral_weave_grips"), SubResource("LootEntry_phasewalk_soles"), SubResource("LootEntry_singularity_charm"), SubResource("LootEntry_orbit_signet")])

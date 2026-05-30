@@ -26,6 +26,8 @@ const ROOM_EVENTS = [
 	preload("res://resources/events/ember_pact.tres"),
 	preload("res://resources/events/iron_oath.tres"),
 	preload("res://resources/events/trial_altar.tres"),
+	preload("res://resources/events/starless_lens.tres"),
+	preload("res://resources/events/rift_anchor.tres"),
 ]
 const ELITE_AFFIXES = [
 	preload("res://resources/elite_affixes/flaming.tres"),

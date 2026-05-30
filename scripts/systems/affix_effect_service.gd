@@ -50,6 +50,12 @@ func _apply_effect(effect_id: StringName, source: Node, target: Node, packet: Re
 		&"chain_lightning":
 			_trigger_chain_lightning(source, target, packet)
 			return true
+		&"rift_echo":
+			_trigger_rift_echo(source, target, packet)
+			return true
+		&"gravity_well":
+			_spawn_gravity_well(source, packet.hit_position if packet.hit_position != Vector2.ZERO else target.global_position, packet.amount * 0.35)
+			return true
 	return false
 
 func _spawn_fire_burst(source: Node, center: Vector2, damage: float) -> void:
@@ -89,6 +95,60 @@ func _trigger_chain_lightning(source: Node, primary_target: Node, packet: RefCou
 		origin = enemy.global_position
 		chained += 1
 
+func _trigger_rift_echo(source: Node, target: Node, packet: RefCounted) -> void:
+	if not _is_damageable_enemy(target):
+		return
+	var visual := Node2D.new()
+	visual.global_position = packet.hit_position if packet.hit_position != Vector2.ZERO else target.global_position
+	visual.add_to_group("affix_effects")
+	_effect_parent().add_child(visual)
+
+	var ring := Polygon2D.new()
+	ring.color = Color(0.56, 0.28, 1.0, 0.38)
+	ring.polygon = _circle_polygon(24.0, 18)
+	ring.z_index = 22
+	visual.add_child(ring)
+	var tween := ring.create_tween()
+	tween.tween_property(ring, "scale", Vector2(1.45, 1.45), 0.22).from(Vector2(0.45, 0.45))
+	tween.parallel().tween_property(ring, "modulate:a", 0.0, 0.22)
+
+	var source_id: int = source.get_instance_id() if source != null and is_instance_valid(source) else 0
+	var target_id: int = target.get_instance_id()
+	var amount: float = float(packet.amount) * 0.4
+	_after_on(visual, 0.22, func() -> void:
+		var resolved_source := instance_from_id(source_id) if source_id != 0 else null
+		var resolved_target := instance_from_id(target_id)
+		if _is_damageable_enemy(resolved_target):
+			_damage_enemy(resolved_source, resolved_target, amount, &"arcane", visual.global_position, 70.0)
+		visual.queue_free()
+	)
+
+func _spawn_gravity_well(source: Node, center: Vector2, damage: float) -> void:
+	var visual := Node2D.new()
+	visual.global_position = center
+	visual.add_to_group("affix_effects")
+	_effect_parent().add_child(visual)
+
+	var polygon := Polygon2D.new()
+	polygon.color = Color(0.42, 0.18, 0.95, 0.32)
+	polygon.polygon = _circle_polygon(86.0, 30)
+	polygon.z_index = 20
+	visual.add_child(polygon)
+	var tween := polygon.create_tween()
+	tween.tween_property(polygon, "scale", Vector2(1.08, 1.08), 0.2).from(Vector2(0.76, 0.76))
+	tween.parallel().tween_property(polygon, "modulate:a", 0.7, 0.2)
+
+	var source_id := source.get_instance_id() if source != null and is_instance_valid(source) else 0
+	_after_on(visual, 0.2, func() -> void:
+		var resolved_source := instance_from_id(source_id) if source_id != 0 else null
+		_apply_gravity_damage(resolved_source, center, 86.0, damage, 3)
+		polygon.color = Color(0.78, 0.58, 1.0, 0.5)
+		var fade := polygon.create_tween()
+		fade.tween_property(polygon, "scale", Vector2(0.3, 0.3), 0.14)
+		fade.parallel().tween_property(polygon, "modulate:a", 0.0, 0.14)
+		_after_on(visual, 0.15, visual.queue_free)
+	)
+
 func _spawn_chain_visual(from_position: Vector2, to_position: Vector2) -> void:
 	var visual := Node2D.new()
 	visual.add_to_group("affix_effects")
@@ -109,7 +169,19 @@ func _apply_area_damage(source: Node, center: Vector2, radius: float, damage: fl
 	for enemy in _nearby_enemies(center, radius, []):
 		_damage_enemy(source, enemy, damage, element, center, knockback)
 
+func _apply_gravity_damage(source: Node, center: Vector2, radius: float, damage: float, max_targets: int) -> void:
+	var hit_count := 0
+	for enemy in _nearby_enemies(center, radius, []):
+		if hit_count >= max_targets:
+			break
+		var direction: Vector2 = (center - enemy.global_position).normalized()
+		_damage_enemy_with_direction(source, enemy, damage, &"arcane", direction, 145.0)
+		hit_count += 1
+
 func _damage_enemy(source: Node, enemy: Node, amount: float, element: StringName, origin: Vector2, knockback: float) -> void:
+	_damage_enemy_with_direction(source, enemy, amount, element, (enemy.global_position - origin).normalized(), knockback)
+
+func _damage_enemy_with_direction(source: Node, enemy: Node, amount: float, element: StringName, hit_direction: Vector2, knockback: float) -> void:
 	if not _is_damageable_enemy(enemy):
 		return
 	var packet = DamagePacketScript.new()
@@ -117,7 +189,7 @@ func _damage_enemy(source: Node, enemy: Node, amount: float, element: StringName
 	packet.source = source if source != null and is_instance_valid(source) else null
 	packet.element = element
 	packet.hit_position = enemy.global_position
-	packet.hit_direction = (enemy.global_position - origin).normalized()
+	packet.hit_direction = hit_direction
 	packet.knockback_force = knockback
 	enemy.take_damage(packet)
 

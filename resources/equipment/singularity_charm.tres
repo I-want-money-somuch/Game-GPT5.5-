@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="EquipmentDefinition" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/equipment_definition.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/resources/stat_block.gd" id="2"]
+
+[sub_resource type="Resource" id="StatBlock_singularity_charm"]
+script = ExtResource("2")
+damage_multiplier = 0.08
+skill_cooldown_reduction = 0.06
+energy_recovery = 0.26
+
+[resource]
+script = ExtResource("1")
+id = &"singularity_charm"
+display_name = "Singularity Charm"
+description = "A tiny sealed collapse that feeds power into high-risk builds."
+slot = 4
+rarity = 2
+stat_modifiers = SubResource("StatBlock_singularity_charm")
